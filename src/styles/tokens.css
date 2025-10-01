@@ -1,0 +1,79 @@
+:root {
+  --bg: #ffffff;
+  --bg-alt: #fafafa;
+  --fg: #1f2328;
+  --fg-muted: #6b7280;
+  --border: #e5e7eb;
+  --radius: 6px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --accent: #3b82f6;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+
+  /* Gray scale */
+  --gray-3: #f1f3f5;
+  --gray-6: #d1d5db;
+  --gray-9: #6b7280;
+  --gray-10: #4b5563;
+  --gray-11: #374151;
+  --gray-12: #1f2937;
+
+  /* Accent scale (blue) */
+  --accent-3: #dbeafe;
+  --accent-9: #3b82f6;
+  --accent-11: #1e40af;
+
+  /* Red scale */
+  --red-9: #ef4444;
+}
+
+[data-theme="dark"] {
+  --bg: #0f1115;
+  --bg-alt: #12141a;
+  --fg: #e5e7eb;
+  --fg-muted: #9ca3af;
+  --border: #23262d;
+  --accent: #60a5fa;
+
+  /* Gray scale (dark mode) */
+  --gray-3: #1f2937;
+  --gray-6: #4b5563;
+  --gray-9: #9ca3af;
+  --gray-10: #d1d5db;
+  --gray-11: #e5e7eb;
+  --gray-12: #f9fafb;
+
+  /* Accent scale (blue - dark mode) */
+  --accent-3: #1e3a8a;
+  --accent-9: #60a5fa;
+  --accent-11: #93c5fd;
+
+  /* Red scale (dark mode) */
+  --red-9: #f87171;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
