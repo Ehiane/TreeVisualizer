@@ -150,6 +150,7 @@ export function TreeSelectionPage() {
               style={{
                 opacity: option.status === 'coming-soon' ? 0.6 : 1,
                 cursor: option.status === 'coming-soon' ? 'not-allowed' : 'pointer',
+                ['--card-color' as any]: option.color,
               }}
             >
               {/* Icon Circle */}

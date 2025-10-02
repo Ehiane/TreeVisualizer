@@ -421,7 +421,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--accent-9), var(--accent-11));
+  background: var(--card-color, var(--accent-9));
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -431,7 +431,7 @@
 }
 
 .treeCard:not(:disabled):hover {
-  border-color: var(--accent-9);
+  border-color: var(--card-color, var(--accent-9));
   transform: translateY(-8px) scale(1.02);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
 }
