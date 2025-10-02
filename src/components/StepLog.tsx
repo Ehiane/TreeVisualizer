@@ -3,9 +3,16 @@ import styles from '../styles/app.module.css';
 import { useTreeStore } from '../state/useTreeStore';
 
 export function StepLog() {
-  const { steps, index } = useTreeStore();
+  const { steps, index, goto, pause, playing } = useTreeStore();
   const listRef = useRef<HTMLUListElement>(null);
   const activeItemRef = useRef<HTMLLIElement>(null);
+
+  const handleStepClick = (stepIndex: number) => {
+    if (playing) {
+      pause();
+    }
+    goto(stepIndex);
+  };
 
   // Auto-scroll to active step
   useEffect(() => {
@@ -45,9 +52,12 @@ export function StepLog() {
               style={{
                 opacity: isPast ? 0.5 : 1,
                 backgroundColor: isActive ? 'var(--accent-3)' : undefined,
-                borderLeft: isActive ? '3px solid var(--accent-9)' : '3px solid transparent',
+                borderLeftWidth: '3px',
+                borderLeftColor: isActive ? 'var(--accent-9)' : 'transparent',
                 transition: 'all 0.3s ease',
+                cursor: 'pointer',
               }}
+              onClick={() => handleStepClick(i)}
             >
               <div className={styles.blockContent}>
                 <h4 className={styles.blockTitle}>Step {i + 1}</h4>

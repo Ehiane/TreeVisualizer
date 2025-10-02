@@ -7,9 +7,11 @@ import { TreeCanvas } from './TreeCanvas';
 export function TreeCanvasFrame() {
   const { root, steps, index, playing, next, prev, play, pause, reset, playbackSpeed, setPlaybackSpeed } = useTreeStore();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [scrollStart, setScrollStart] = useState({ left: 0, top: 0 });
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const prevIndexRef = useRef(index);
 
   const currentStep = index >= 0 && index < steps.length ? steps[index] : null;
   const highlightIds = currentStep?.highlightIds || [];
@@ -25,23 +27,19 @@ export function TreeCanvasFrame() {
 
   const treeData = TreeCanvas({ root: displayTree, highlightIds });
 
-  // Handle mouse drag to pan
+  // Handle mouse drag to pan the SVG
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (!canvasRef.current) return;
+    if (!svgRef.current) return;
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
-    setScrollStart({
-      left: canvasRef.current.scrollLeft,
-      top: canvasRef.current.scrollTop,
-    });
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging || !canvasRef.current) return;
+    if (!isDragging) return;
     const dx = e.clientX - dragStart.x;
     const dy = e.clientY - dragStart.y;
-    canvasRef.current.scrollLeft = scrollStart.left - dx;
-    canvasRef.current.scrollTop = scrollStart.top - dy;
+    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    setDragStart({ x: e.clientX, y: e.clientY });
   };
 
   const handleMouseUp = () => {
@@ -57,7 +55,15 @@ export function TreeCanvasFrame() {
         window.removeEventListener('mouseup', handleMouseUp);
       };
     }
-  }, [isDragging, dragStart, scrollStart]);
+  }, [isDragging, dragStart, pan]);
+
+  // Reset pan position when step changes
+  useEffect(() => {
+    if (prevIndexRef.current !== index) {
+      setPan({ x: 0, y: 0 });
+      prevIndexRef.current = index;
+    }
+  }, [index]);
 
   return (
     <>
@@ -66,18 +72,25 @@ export function TreeCanvasFrame() {
           ref={canvasRef}
           className={styles.canvasWrap}
           style={{
-            overflow: 'auto',
+            overflow: 'hidden',
             position: 'relative',
             cursor: isDragging ? 'grabbing' : 'grab',
           }}
           onMouseDown={handleMouseDown}
         >
           <svg
+            ref={svgRef}
             className={styles.svg}
             role="img"
             aria-label="Tree visualization canvas"
             viewBox={treeData.viewBox}
-            style={{ minWidth: '100%', minHeight: '100%', pointerEvents: 'none' }}
+            style={{
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              transform: `translate(${pan.x}px, ${pan.y}px)`,
+              transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+            }}
           >
             {treeData.content}
           </svg>

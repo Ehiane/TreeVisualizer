@@ -1,7 +1,7 @@
 /* Layout */
 .container {
   display: grid;
-  grid-template-columns: 260px 1fr 320px;
+  grid-template-columns: 260px 1fr 380px;
   height: calc(100vh - 48px);
   overflow: hidden;
 }
@@ -239,24 +239,8 @@
   border-color: var(--fg-muted);
 }
 
-.block::before {
-  content: "⋮";
-  position: absolute;
-  left: var(--space-2);
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--fg-muted);
-  font-size: 16px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.block:hover::before {
-  opacity: 1;
-}
-
 .blockContent {
-  margin-left: var(--space-4);
+  margin-left: 0;
 }
 
 .blockTitle {
@@ -291,6 +275,17 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes nodeAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

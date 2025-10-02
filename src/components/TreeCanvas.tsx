@@ -15,6 +15,20 @@ export function TreeCanvas({ root, highlightIds }: TreeCanvasProps) {
   const positions: NodePosition[] = [];
   const edges: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
 
+  // Track all node IDs we've seen before to determine if a node is "new"
+  const allNodeIds = new Set<string>();
+
+  function collectNodeIds(node: TreeNode | null) {
+    if (!node) return;
+    allNodeIds.add(node.id);
+    collectNodeIds(node.left);
+    collectNodeIds(node.right);
+  }
+
+  if (root) {
+    collectNodeIds(root);
+  }
+
   if (!root) {
     return { viewBox: '0 0 800 400', content: (
       <text
@@ -109,6 +123,7 @@ export function TreeCanvas({ root, highlightIds }: TreeCanvasProps) {
               strokeWidth="2"
               style={{
                 transition: 'all 0.3s ease',
+                animation: 'nodeAppear 0.4s ease-out',
               }}
             />
 
@@ -123,6 +138,7 @@ export function TreeCanvas({ root, highlightIds }: TreeCanvasProps) {
               fontWeight="500"
               style={{
                 transition: 'fill 0.3s ease',
+                animation: 'nodeAppear 0.4s ease-out',
               }}
             >
               {node.value}
