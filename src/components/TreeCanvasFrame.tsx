@@ -1,30 +1,35 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Info, ZoomIn, ZoomOut } from 'lucide-react';
 import styles from '../styles/app.module.css';
 import { useTreeStore } from '../state/useTreeStore';
 import { TreeCanvas } from './TreeCanvas';
 import { BTreeCanvas } from './BTreeCanvas';
+import { BPlusTreeCanvas } from './BPlusTreeCanvas';
 import { InfoModal } from './InfoModal';
 
 export function TreeCanvasFrame() {
-  const { root, steps, index, playing, next, prev, play, pause, reset, playbackSpeed, setPlaybackSpeed, treeType } = useTreeStore();
+  const { root, steps, index, playing, next, prev, play, pause, reset, playbackSpeed, setPlaybackSpeed, treeType, activeAction } = useTreeStore();
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
   const prevIndexRef = useRef(index);
 
   const currentStep = index >= 0 && index < steps.length ? steps[index] : null;
   const highlightIds = currentStep?.highlightIds || [];
+  const highlightKeys = currentStep?.highlightKeys || [];
   const remainingValues = currentStep?.remainingValues || [];
   const currentValue = currentStep?.currentValue;
 
   // Use tree from step if available (for incremental building), otherwise use main root
-  // For B-Trees, use btree field, for binary trees use tree field
+  // For B-Trees, use btree field, for B+ Trees use bplustree field, for binary trees use tree field
   const displayTree = treeType === 'b-tree'
     ? (currentStep?.btree !== undefined ? currentStep.btree : root)
+    : treeType === 'b-plus-tree'
+    ? (currentStep?.bplustree !== undefined ? currentStep.bplustree : root)
     : (currentStep?.tree !== undefined ? currentStep.tree : root);
 
   const canGoPrev = index > -1;
@@ -32,8 +37,10 @@ export function TreeCanvasFrame() {
   const hasSteps = steps.length > 0;
 
   const treeData = treeType === 'b-tree'
-    ? BTreeCanvas({ root: displayTree, highlightIds })
-    : TreeCanvas({ root: displayTree, highlightIds });
+    ? BTreeCanvas({ root: displayTree, highlightIds, activeAction })
+    : treeType === 'b-plus-tree'
+    ? BPlusTreeCanvas({ root: displayTree, highlightIds, highlightKeys, activeAction })
+    : TreeCanvas({ root: displayTree, highlightIds, activeAction });
 
   // Handle mouse drag to pan the SVG
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -73,6 +80,19 @@ export function TreeCanvasFrame() {
     }
   }, [index]);
 
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(prev + 0.1, 2));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(prev - 0.1, 0.1));
+  };
+
+  const handleZoomReset = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
   return (
     <>
       <div className={styles.card}>
@@ -96,7 +116,7 @@ export function TreeCanvasFrame() {
               width: '100%',
               height: '100%',
               pointerEvents: 'none',
-              transform: `translate(${pan.x}px, ${pan.y}px)`,
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transition: isDragging ? 'none' : 'transform 0.1s ease-out',
             }}
           >
@@ -171,6 +191,53 @@ export function TreeCanvasFrame() {
               </p>
             </div>
           )}
+
+          {/* Zoom controls */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '16px',
+              right: '16px',
+              display: 'flex',
+              gap: '8px',
+              flexDirection: 'column',
+            }}
+          >
+            <button
+              className={`${styles.btn} ${styles.btnIcon}`}
+              onClick={handleZoomIn}
+              disabled={zoom >= 2}
+              style={{
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              }}
+              aria-label="Zoom in"
+            >
+              <ZoomIn size={16} />
+            </button>
+            <button
+              className={`${styles.btn} ${styles.btnIcon}`}
+              onClick={handleZoomReset}
+              style={{
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                fontSize: '10px',
+                fontWeight: '600',
+              }}
+              aria-label="Reset zoom"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              className={`${styles.btn} ${styles.btnIcon}`}
+              onClick={handleZoomOut}
+              disabled={zoom <= 0.1}
+              style={{
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              }}
+              aria-label="Zoom out"
+            >
+              <ZoomOut size={16} />
+            </button>
+          </div>
 
           {/* Info button */}
           <button

@@ -1,13 +1,14 @@
-import { BTreeNode } from '../types';
+import { BPlusTreeNode } from '../types';
 
-interface BTreeCanvasProps {
-  root: BTreeNode | null;
+interface BPlusTreeCanvasProps {
+  root: BPlusTreeNode | null;
   highlightIds: string[];
+  highlightKeys?: { nodeId: string; keyIndex: number }[];
   activeAction?: string | null;
 }
 
 interface NodePosition {
-  node: BTreeNode;
+  node: BPlusTreeNode;
   x: number;
   y: number;
   width: number;
@@ -19,7 +20,7 @@ const KEY_PADDING = 8;
 const LEVEL_GAP = 120;
 const MIN_SIBLING_GAP = 30;
 
-export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasProps): {
+export function BPlusTreeCanvas({ root, highlightIds, highlightKeys = [], activeAction }: BPlusTreeCanvasProps): {
   content: JSX.Element;
   viewBox: string;
 } {
@@ -34,12 +35,12 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
     };
   }
 
-  // Type guard - ensure we have a B-Tree node
+  // Type guard - ensure we have a B+ Tree node
   if (!('keys' in root) || !('children' in root) || !('isLeaf' in root)) {
     return {
       content: (
         <text x="50%" y="50%" textAnchor="middle" fill="var(--red-9)" fontSize="16">
-          Error: Invalid B-Tree structure
+          Error: Invalid B+ Tree structure
         </text>
       ),
       viewBox: '0 0 800 400',
@@ -48,10 +49,10 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
 
   // Calculate positions for all nodes
   const positions: NodePosition[] = [];
-  const nodeWidth = (node: BTreeNode) => node.keys.length * KEY_WIDTH + (node.keys.length - 1) * KEY_PADDING;
+  const nodeWidth = (node: BPlusTreeNode) => node.keys.length * KEY_WIDTH + (node.keys.length - 1) * KEY_PADDING;
 
   // Calculate subtree width
-  function getSubtreeWidth(node: BTreeNode): number {
+  function getSubtreeWidth(node: BPlusTreeNode): number {
     if (node.isLeaf) {
       return nodeWidth(node);
     }
@@ -66,7 +67,7 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
   }
 
   // Position nodes recursively
-  function positionNodes(node: BTreeNode, x: number, y: number): number {
+  function positionNodes(node: BPlusTreeNode, x: number, y: number): number {
     const width = nodeWidth(node);
     const subtreeWidth = getSubtreeWidth(node);
     const nodeX = x + (subtreeWidth - width) / 2;
@@ -95,7 +96,7 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
   const totalWidth = positionNodes(root, 50, 50);
 
   // Calculate total height
-  function getHeight(node: BTreeNode): number {
+  function getHeight(node: BPlusTreeNode): number {
     if (node.isLeaf) return 1;
     return 1 + Math.max(...node.children.map(getHeight));
   }
@@ -103,13 +104,13 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
   const treeHeight = getHeight(root);
   const totalHeight = treeHeight * LEVEL_GAP + 100;
 
-  // Draw edges
+  // Draw edges (parent to child connections)
   const edges: JSX.Element[] = [];
   positions.forEach((pos) => {
     if (!pos.node.isLeaf && pos.node.children.length > 0) {
       const parentCenterY = pos.y + NODE_HEIGHT;
 
-      pos.node.children.forEach((child, childIndex) => {
+      pos.node.children.forEach((child) => {
         const childPos = positions.find((p) => p.node.id === child.id);
         if (childPos) {
           // Calculate connection point based on child position
@@ -132,6 +133,41 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
     }
   });
 
+  // Draw leaf node connections (linked list)
+  const leafConnections: JSX.Element[] = [];
+  positions.forEach((pos) => {
+    if (pos.node.isLeaf && pos.node.next) {
+      const nextPos = positions.find((p) => p.node.id === pos.node.next?.id);
+      if (nextPos) {
+        const startX = pos.x + pos.width;
+        const startY = pos.y + NODE_HEIGHT / 2;
+        const endX = nextPos.x;
+        const endY = nextPos.y + NODE_HEIGHT / 2;
+
+        // Draw curved arrow connecting leaf nodes
+        const midX = (startX + endX) / 2;
+        const curveOffset = 20;
+
+        leafConnections.push(
+          <g key={`leaf-link-${pos.node.id}`}>
+            <path
+              d={`M ${startX} ${startY} Q ${midX} ${startY + curveOffset} ${endX} ${endY}`}
+              stroke="var(--accent-9)"
+              strokeWidth="2"
+              fill="none"
+              strokeDasharray="5,5"
+            />
+            {/* Arrow head */}
+            <polygon
+              points={`${endX},${endY} ${endX - 8},${endY - 4} ${endX - 8},${endY + 4}`}
+              fill="var(--accent-9)"
+            />
+          </g>
+        );
+      }
+    }
+  });
+
   // Draw nodes
   const nodes: JSX.Element[] = [];
   positions.forEach((pos) => {
@@ -144,14 +180,29 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
     pos.node.keys.forEach((key, index) => {
       const keyX = pos.x + index * (KEY_WIDTH + KEY_PADDING);
 
+      // Check if this specific key should be highlighted
+      const isKeyHighlighted = highlightKeys.some(
+        hk => hk.nodeId === pos.node.id && hk.keyIndex === index
+      );
+
       // Determine border color based on action
-      let borderColor = 'var(--border)';
-      if (isHighlighted && activeAction) {
+      let borderColor = pos.node.isLeaf ? 'var(--green-9)' : 'var(--border)';
+      if ((isKeyHighlighted || isHighlighted) && activeAction) {
         if (activeAction === 'insert') borderColor = 'var(--green-9)';
         else if (activeAction === 'delete') borderColor = 'var(--red-9)';
         else if (activeAction === 'search') borderColor = 'var(--blue-9)';
         else borderColor = 'var(--accent-9)'; // default blue for other actions
       }
+
+      // Leaf nodes have a different style (light green tint for leaves)
+      const fillColor = isKeyHighlighted
+        ? 'var(--accent-3)'
+        : isHighlighted
+        ? 'var(--accent-3)'
+        : (pos.node.isLeaf ? '#f0fdf4' : 'var(--bg)');
+      const strokeColor = (isKeyHighlighted || isHighlighted)
+        ? borderColor
+        : (pos.node.isLeaf ? 'var(--green-9)' : 'var(--border)');
 
       nodeGroup.push(
         <rect
@@ -160,9 +211,9 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
           y={pos.y}
           width={KEY_WIDTH}
           height={NODE_HEIGHT}
-          fill={isHighlighted ? 'var(--accent-3)' : 'var(--bg)'}
-          stroke={isHighlighted ? borderColor : 'var(--border)'}
-          strokeWidth={isHighlighted ? 3 : 2}
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth={(isKeyHighlighted || isHighlighted) ? 3 : 2}
           rx="6"
         />
       );
@@ -174,17 +225,35 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
           y={pos.y + NODE_HEIGHT / 2}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={isHighlighted ? 'var(--accent-11)' : 'var(--gray-12)'}
+          fill={(isKeyHighlighted || isHighlighted) ? 'var(--accent-11)' : 'var(--gray-12)'}
           fontSize="16"
-          fontWeight={isHighlighted ? '600' : '400'}
+          fontWeight={(isKeyHighlighted || isHighlighted) ? '600' : '400'}
         >
           {key}
         </text>
       );
     });
 
+    // Add leaf indicator
+    if (pos.node.isLeaf) {
+      nodeGroup.push(
+        <text
+          key={`leaf-label-${pos.node.id}`}
+          x={pos.x + pos.width / 2}
+          y={pos.y + NODE_HEIGHT + 15}
+          textAnchor="middle"
+          fill="var(--accent-11)"
+          fontSize="10"
+          fontStyle="italic"
+          fontWeight="600"
+        >
+          leaf
+        </text>
+      );
+    }
+
     nodes.push(
-      <g key={`node-${pos.node.id}`} className="btree-node">
+      <g key={`node-${pos.node.id}`} className="bplustree-node">
         {nodeGroup}
       </g>
     );
@@ -194,6 +263,7 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
     content: (
       <g>
         {edges}
+        {leafConnections}
         {nodes}
       </g>
     ),

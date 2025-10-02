@@ -142,6 +142,25 @@
   border-color: var(--fg-muted);
 }
 
+/* Operation Button Hover Styles - Must come after base .btn:hover */
+button.btnInsert:hover:not(:disabled) {
+  background: var(--green-9) !important;
+  border-color: var(--green-9) !important;
+  color: white !important;
+}
+
+button.btnDelete:hover:not(:disabled) {
+  background: var(--red-9) !important;
+  border-color: var(--red-9) !important;
+  color: white !important;
+}
+
+button.btnSearch:hover:not(:disabled) {
+  background: var(--blue-9) !important;
+  border-color: var(--blue-9) !important;
+  color: white !important;
+}
+
 .btn:active {
   transform: translateY(0.5px);
 }

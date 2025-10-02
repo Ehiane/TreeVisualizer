@@ -3,6 +3,7 @@ import { TreeNode } from '../types';
 interface TreeCanvasProps {
   root: TreeNode | null;
   highlightIds: string[];
+  activeAction?: string | null;
 }
 
 interface NodePosition {
@@ -11,7 +12,7 @@ interface NodePosition {
   node: TreeNode;
 }
 
-export function TreeCanvas({ root, highlightIds }: TreeCanvasProps) {
+export function TreeCanvas({ root, highlightIds, activeAction }: TreeCanvasProps) {
   const positions: NodePosition[] = [];
   const edges: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
 
@@ -101,15 +102,24 @@ export function TreeCanvas({ root, highlightIds }: TreeCanvasProps) {
           y1={edge.y1}
           x2={edge.x2}
           y2={edge.y2}
-          stroke="currentColor"
+          stroke="var(--border)"
           strokeWidth="2"
-          opacity="0.3"
+          opacity="0.8"
         />
       ))}
 
       {/* Draw nodes */}
       {positions.map(({ x, y, node }) => {
         const isHighlighted = highlightIds.includes(node.id);
+
+        // Determine border color based on action
+        let borderColor = 'var(--border)';
+        if (isHighlighted && activeAction) {
+          if (activeAction === 'insert') borderColor = 'var(--green-9)';
+          else if (activeAction === 'delete') borderColor = 'var(--red-9)';
+          else if (activeAction === 'search') borderColor = 'var(--blue-9)';
+          else borderColor = 'var(--accent-9)'; // default blue for other actions
+        }
 
         return (
           <g key={node.id}>
@@ -118,9 +128,9 @@ export function TreeCanvas({ root, highlightIds }: TreeCanvasProps) {
               cx={x}
               cy={y}
               r="24"
-              fill={isHighlighted ? 'var(--accent-9)' : 'var(--gray-3)'}
-              stroke={isHighlighted ? 'var(--accent-11)' : 'var(--gray-6)'}
-              strokeWidth="2"
+              fill={isHighlighted ? 'var(--accent-9)' : 'var(--bg)'}
+              stroke={isHighlighted ? borderColor : 'var(--border)'}
+              strokeWidth={isHighlighted ? 3 : 2}
               style={{
                 transition: 'all 0.3s ease',
                 animation: 'nodeAppear 0.4s ease-out',
@@ -133,9 +143,9 @@ export function TreeCanvas({ root, highlightIds }: TreeCanvasProps) {
               y={y}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill={isHighlighted ? 'white' : 'currentColor'}
+              fill={isHighlighted ? 'white' : 'var(--gray-12)'}
               fontSize="14"
-              fontWeight="500"
+              fontWeight={isHighlighted ? '600' : '500'}
               style={{
                 transition: 'fill 0.3s ease',
                 animation: 'nodeAppear 0.4s ease-out',

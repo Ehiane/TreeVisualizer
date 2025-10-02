@@ -218,14 +218,11 @@ export function deleteWithSteps(
 
   for (const value of values) {
     const { root: newRoot, steps } = deleteSingleValue(root, value);
-    root = newRoot;
 
-    steps.forEach((step) => {
-      allSteps.push({
-        ...step,
-        tree: cloneTree(root),
-      });
-    });
+    // Add steps with intermediate tree states already included
+    allSteps.push(...steps);
+
+    root = newRoot;
   }
 
   return { root, steps: allSteps };
@@ -241,17 +238,19 @@ function deleteSingleValue(
     steps.push({
       highlightIds: [],
       message: `Cannot delete ${value}: tree is empty`,
+      tree: null,
     });
     return { root: null, steps };
   }
 
   const root = cloneTree(startRoot);
-  const result = deleteNodeRecursive(root, value, steps, []);
+  const result = deleteNodeRecursive(root, root, value, steps, []);
 
   return { root: result, steps };
 }
 
 function deleteNodeRecursive(
+  rootRef: TreeNode,
   node: TreeNode | null,
   value: number,
   steps: Step[],
@@ -261,6 +260,7 @@ function deleteNodeRecursive(
     steps.push({
       highlightIds: [...path],
       message: `Value ${value} not found in tree`,
+      tree: cloneTree(rootRef),
     });
     return null;
   }
@@ -271,15 +271,17 @@ function deleteNodeRecursive(
     steps.push({
       highlightIds: [...path],
       message: `Searching for ${value}: go left from ${node.value}`,
+      tree: cloneTree(rootRef),
     });
-    node.left = deleteNodeRecursive(node.left, value, steps, [...path]);
+    node.left = deleteNodeRecursive(rootRef, node.left, value, steps, [...path]);
     return node;
   } else if (value > node.value) {
     steps.push({
       highlightIds: [...path],
       message: `Searching for ${value}: go right from ${node.value}`,
+      tree: cloneTree(rootRef),
     });
-    node.right = deleteNodeRecursive(node.right, value, steps, [...path]);
+    node.right = deleteNodeRecursive(rootRef, node.right, value, steps, [...path]);
     return node;
   }
 
@@ -287,6 +289,7 @@ function deleteNodeRecursive(
   steps.push({
     highlightIds: [...path],
     message: `Found ${value}, deleting node...`,
+    tree: cloneTree(rootRef),
   });
 
   // Case 1: Node with no children (leaf)
@@ -294,6 +297,7 @@ function deleteNodeRecursive(
     steps.push({
       highlightIds: [node.id],
       message: `${value} is a leaf node, removing it`,
+      tree: cloneTree(rootRef),
     });
     return null;
   }
@@ -303,6 +307,7 @@ function deleteNodeRecursive(
     steps.push({
       highlightIds: [node.id, node.right!.id],
       message: `${value} has only right child, replacing with ${node.right!.value}`,
+      tree: cloneTree(rootRef),
     });
     return node.right;
   }
@@ -311,6 +316,7 @@ function deleteNodeRecursive(
     steps.push({
       highlightIds: [node.id, node.left!.id],
       message: `${value} has only left child, replacing with ${node.left!.value}`,
+      tree: cloneTree(rootRef),
     });
     return node.left;
   }
@@ -321,10 +327,11 @@ function deleteNodeRecursive(
   steps.push({
     highlightIds: [node.id, successor.id],
     message: `${value} has two children, replacing with inorder successor ${successor.value}`,
+    tree: cloneTree(rootRef),
   });
 
   node.value = successor.value;
-  node.right = deleteNodeRecursive(node.right, successor.value, steps, [...path]);
+  node.right = deleteNodeRecursive(rootRef, node.right, successor.value, steps, [...path]);
 
   return node;
 }

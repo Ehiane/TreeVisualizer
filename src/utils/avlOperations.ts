@@ -320,14 +320,11 @@ export function deleteAVLWithSteps(
 
   for (const value of values) {
     const { root: newRoot, steps } = deleteSingleAVL(root, value);
-    root = newRoot;
 
-    steps.forEach((step) => {
-      allSteps.push({
-        ...step,
-        tree: cloneTree(root),
-      });
-    });
+    // Add steps with intermediate tree states already included
+    allSteps.push(...steps);
+
+    root = newRoot;
   }
 
   return { root, steps: allSteps };
@@ -343,17 +340,19 @@ function deleteSingleAVL(
     steps.push({
       highlightIds: [],
       message: `Cannot delete ${value}: tree is empty`,
+      tree: null,
     });
     return { root: null, steps };
   }
 
   const root = cloneTree(startRoot);
-  const result = deleteAVLRecursive(root, value, steps, []);
+  const result = deleteAVLRecursive(root, root, value, steps, []);
 
   return { root: result, steps };
 }
 
 function deleteAVLRecursive(
+  rootRef: TreeNode,
   node: TreeNode | null,
   value: number,
   steps: Step[],
@@ -363,6 +362,7 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [...path],
       message: `Value ${value} not found in tree`,
+      tree: cloneTree(rootRef),
     });
     return null;
   }
@@ -373,19 +373,22 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [...path],
       message: `Searching for ${value}: go left from ${node.value}`,
+      tree: cloneTree(rootRef),
     });
-    node.left = deleteAVLRecursive(node.left, value, steps, [...path]);
+    node.left = deleteAVLRecursive(rootRef, node.left, value, steps, [...path]);
   } else if (value > node.value) {
     steps.push({
       highlightIds: [...path],
       message: `Searching for ${value}: go right from ${node.value}`,
+      tree: cloneTree(rootRef),
     });
-    node.right = deleteAVLRecursive(node.right, value, steps, [...path]);
+    node.right = deleteAVLRecursive(rootRef, node.right, value, steps, [...path]);
   } else {
     // Found the node to delete
     steps.push({
       highlightIds: [...path],
       message: `Found ${value}, deleting node...`,
+      tree: cloneTree(rootRef),
     });
 
     // Case 1: Node with no children (leaf)
@@ -393,6 +396,7 @@ function deleteAVLRecursive(
       steps.push({
         highlightIds: [node.id],
         message: `${value} is a leaf node, removing it`,
+        tree: cloneTree(rootRef),
       });
       return null;
     }
@@ -402,6 +406,7 @@ function deleteAVLRecursive(
       steps.push({
         highlightIds: [node.id, node.right!.id],
         message: `${value} has only right child, replacing with ${node.right!.value}`,
+        tree: cloneTree(rootRef),
       });
       return node.right;
     }
@@ -410,6 +415,7 @@ function deleteAVLRecursive(
       steps.push({
         highlightIds: [node.id, node.left!.id],
         message: `${value} has only left child, replacing with ${node.left!.value}`,
+        tree: cloneTree(rootRef),
       });
       return node.left;
     }
@@ -419,10 +425,11 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [node.id, successor.id],
       message: `${value} has two children, replacing with inorder successor ${successor.value}`,
+      tree: cloneTree(rootRef),
     });
 
     node.value = successor.value;
-    node.right = deleteAVLRecursive(node.right, successor.value, steps, [...path]);
+    node.right = deleteAVLRecursive(rootRef, node.right, successor.value, steps, [...path]);
   }
 
   // Get balance factor after deletion
@@ -433,6 +440,7 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [node.id],
       message: `Node ${node.value} is unbalanced after deletion (balance factor: ${balance})`,
+      tree: cloneTree(rootRef),
     });
   }
 
@@ -441,11 +449,13 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [node.id, node.left!.id],
       message: `Left-Left case detected, performing right rotation on ${node.value}`,
+      tree: cloneTree(rootRef),
     });
     const rotated = rotateRight(node);
     steps.push({
       highlightIds: [rotated.id],
       message: `Right rotation complete, new subtree root is ${rotated.value}`,
+      tree: cloneTree(rootRef),
     });
     return rotated;
   }
@@ -455,16 +465,19 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [node.id, node.left!.id],
       message: `Left-Right case detected, first performing left rotation on ${node.left!.value}`,
+      tree: cloneTree(rootRef),
     });
     node.left = rotateLeft(node.left!);
     steps.push({
       highlightIds: [node.id, node.left.id],
       message: `Now performing right rotation on ${node.value}`,
+      tree: cloneTree(rootRef),
     });
     const rotated = rotateRight(node);
     steps.push({
       highlightIds: [rotated.id],
       message: `Left-Right rotation complete, new subtree root is ${rotated.value}`,
+      tree: cloneTree(rootRef),
     });
     return rotated;
   }
@@ -474,11 +487,13 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [node.id, node.right!.id],
       message: `Right-Right case detected, performing left rotation on ${node.value}`,
+      tree: cloneTree(rootRef),
     });
     const rotated = rotateLeft(node);
     steps.push({
       highlightIds: [rotated.id],
       message: `Left rotation complete, new subtree root is ${rotated.value}`,
+      tree: cloneTree(rootRef),
     });
     return rotated;
   }
@@ -488,16 +503,19 @@ function deleteAVLRecursive(
     steps.push({
       highlightIds: [node.id, node.right!.id],
       message: `Right-Left case detected, first performing right rotation on ${node.right!.value}`,
+      tree: cloneTree(rootRef),
     });
     node.right = rotateRight(node.right!);
     steps.push({
       highlightIds: [node.id, node.right.id],
       message: `Now performing left rotation on ${node.value}`,
+      tree: cloneTree(rootRef),
     });
     const rotated = rotateLeft(node);
     steps.push({
       highlightIds: [rotated.id],
       message: `Right-Left rotation complete, new subtree root is ${rotated.value}`,
+      tree: cloneTree(rootRef),
     });
     return rotated;
   }

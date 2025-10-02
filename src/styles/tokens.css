@@ -28,6 +28,12 @@
 
   /* Red scale */
   --red-9: #ef4444;
+
+  /* Green scale */
+  --green-9: #22c55e;
+
+  /* Blue scale */
+  --blue-9: #3b82f6;
 }
 
 [data-theme="dark"] {
@@ -53,6 +59,12 @@
 
   /* Red scale (dark mode) */
   --red-9: #f87171;
+
+  /* Green scale (dark mode) */
+  --green-9: #4ade80;
+
+  /* Blue scale (dark mode) */
+  --blue-9: #60a5fa;
 }
 
 html,

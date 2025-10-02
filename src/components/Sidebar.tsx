@@ -5,23 +5,28 @@ import { useTreeStore } from '../state/useTreeStore';
 import { buildTree, buildTreeWithSteps, validateInput } from '../utils/buildTree';
 import { buildAVLTree, buildAVLTreeWithSteps } from '../utils/avlTree';
 import { buildBTree, buildBTreeWithSteps, setMinDegree } from '../utils/bTree';
+import { buildBPlusTree, buildBPlusTreeWithSteps, setMinDegree as setBPlusMinDegree } from '../utils/bPlusTree';
 import { executeTraversal, TraversalType } from '../utils/traversals';
 import { executeBTreeTraversal, BTreeTraversalType } from '../utils/bTreeTraversals';
+import { executeBPlusTreeTraversal, BPlusTreeTraversalType } from '../utils/bPlusTreeTraversals';
 import { insertWithSteps, searchWithSteps, deleteWithSteps } from '../utils/bstOperations';
 import { insertAVLWithSteps, searchAVLWithSteps, deleteAVLWithSteps } from '../utils/avlOperations';
 import { insertBTreeWithSteps, searchBTreeWithSteps as searchBTree, deleteBTreeWithSteps } from '../utils/bTreeOperations';
+import { insertBPlusTreeWithSteps, searchBPlusTreeWithSteps, deleteBPlusTreeWithSteps } from '../utils/bPlusTreeOperations';
 import { NotificationModal } from './NotificationModal';
 
 export interface SidebarRef {
   buildTree: () => void;
   clearTree: () => void;
-  runTraversal: (type: TraversalType | BTreeTraversalType) => void;
+  runTraversal: (type: TraversalType | BTreeTraversalType | BPlusTreeTraversalType) => void;
 }
 
 export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
   const [arrayInput, setArrayInput] = useState('');
   const [error, setError] = useState('');
   const [skipAnimation, setSkipAnimation] = useState(false);
+  const [skipOperationAnimation, setSkipOperationAnimation] = useState(false);
+  const [skipTraversalAnimation, setSkipTraversalAnimation] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [insertValue, setInsertValue] = useState('');
   const [deleteValue, setDeleteValue] = useState('');
@@ -45,8 +50,8 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       return;
     }
 
-    // Set minimum degree for B-Trees
-    if (treeType === 'b-tree') {
+    // Set minimum degree for B-Trees and B+ Trees
+    if (treeType === 'b-tree' || treeType === 'b-plus-tree') {
       const degree = parseInt(minDegree);
 
       if (isNaN(degree)) {
@@ -69,7 +74,11 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         return;
       }
 
-      setMinDegree(degree);
+      if (treeType === 'b-tree') {
+        setMinDegree(degree);
+      } else {
+        setBPlusMinDegree(degree);
+      }
     }
 
     if (skipAnimation) {
@@ -78,6 +87,8 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         ? buildAVLTree(arrayInput)
         : treeType === 'b-tree'
         ? buildBTree(arrayInput)
+        : treeType === 'b-plus-tree'
+        ? buildBPlusTree(arrayInput)
         : buildTree(arrayInput);
       setRoot(tree);
       setSteps([]);
@@ -87,6 +98,8 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         ? buildAVLTreeWithSteps(arrayInput)
         : treeType === 'b-tree'
         ? buildBTreeWithSteps(arrayInput)
+        : treeType === 'b-plus-tree'
+        ? buildBPlusTreeWithSteps(arrayInput)
         : buildTreeWithSteps(arrayInput);
       setRoot(tree);
       setSteps(steps, 'build');
@@ -105,7 +118,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
     clear();
   };
 
-  const handleTraversal = (type: TraversalType | BTreeTraversalType) => {
+  const handleTraversal = (type: TraversalType | BTreeTraversalType | BPlusTreeTraversalType) => {
     if (!root) {
       setIsModalOpen(true);
       return;
@@ -113,13 +126,19 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
 
     setError('');
 
-    // Use B-Tree traversals for B-Trees
+    // Use appropriate traversals based on tree type
     const steps = treeType === 'b-tree'
       ? executeBTreeTraversal(root, type as BTreeTraversalType)
+      : treeType === 'b-plus-tree'
+      ? executeBPlusTreeTraversal(root, type as BPlusTreeTraversalType)
       : executeTraversal(root, type as TraversalType);
 
-    setSteps(steps, type);
-    setTimeout(() => play(), 100);
+    if (skipTraversalAnimation) {
+      setSteps([], type);
+    } else {
+      setSteps(steps, type);
+      setTimeout(() => play(), 100);
+    }
   };
 
   const validateOperationInput = (input: string, operationName: string): { valid: boolean; error?: string } => {
@@ -165,11 +184,18 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       ? insertAVLWithSteps(root, insertValue)
       : treeType === 'b-tree'
       ? insertBTreeWithSteps(root, insertValue, parseInt(minDegree) || 3)
+      : treeType === 'b-plus-tree'
+      ? insertBPlusTreeWithSteps(root, insertValue, parseInt(minDegree) || 3)
       : insertWithSteps(root, insertValue);
     setRoot(newRoot);
-    setSteps(steps, 'insert');
     setInsertValue('');
-    setTimeout(() => play(), 100);
+
+    if (skipOperationAnimation) {
+      setSteps([], 'insert');
+    } else {
+      setSteps(steps, 'insert');
+      setTimeout(() => play(), 100);
+    }
   };
 
   const handleDelete = () => {
@@ -190,11 +216,18 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       ? deleteAVLWithSteps(root, deleteValue)
       : treeType === 'b-tree'
       ? deleteBTreeWithSteps(root, deleteValue, parseInt(minDegree) || 3)
+      : treeType === 'b-plus-tree'
+      ? deleteBPlusTreeWithSteps(root, deleteValue, parseInt(minDegree) || 3)
       : deleteWithSteps(root, deleteValue);
     setRoot(newRoot);
-    setSteps(steps, 'delete');
     setDeleteValue('');
-    setTimeout(() => play(), 100);
+
+    if (skipOperationAnimation) {
+      setSteps([], 'delete');
+    } else {
+      setSteps(steps, 'delete');
+      setTimeout(() => play(), 100);
+    }
   };
 
   const handleSearch = () => {
@@ -215,10 +248,17 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       ? searchAVLWithSteps(root, searchValue)
       : treeType === 'b-tree'
       ? searchBTree(root, searchValue)
+      : treeType === 'b-plus-tree'
+      ? searchBPlusTreeWithSteps(root, searchValue)
       : searchWithSteps(root, searchValue);
-    setSteps(steps, 'search');
     setSearchValue('');
-    setTimeout(() => play(), 100);
+
+    if (skipOperationAnimation) {
+      setSteps([], 'search');
+    } else {
+      setSteps(steps, 'search');
+      setTimeout(() => play(), 100);
+    }
   };
 
   // Expose methods to parent via ref
@@ -240,7 +280,24 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Input</h3>
 
-        {treeType === 'b-tree' && (
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="checkbox"
+            id="skip-animation"
+            checked={skipAnimation}
+            onChange={(e) => setSkipAnimation(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          <label
+            htmlFor="skip-animation"
+            style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--gray-11)' }}
+          >
+            <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+            Skip animation
+          </label>
+        </div>
+
+        {(treeType === 'b-tree' || treeType === 'b-plus-tree') && (
           <div className={styles.inputGroup}>
             <label htmlFor="min-degree-input" className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
               Minimum Degree (t)
@@ -292,9 +349,22 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 <br />
                 • Each node (except root) has at least <strong>t-1 keys</strong>
                 <br />
+                • When a node exceeds 2t-1 keys, it splits at index t
+                <br />
                 • Example: t=3 means 2-5 keys per node
                 <br />
                 • Higher t = wider, shorter trees
+                {treeType === 'b-plus-tree' && (
+                  <>
+                    <br />
+                    <br />
+                    <strong>B+ Tree specific:</strong>
+                    <br />
+                    • All data values stored in leaf nodes
+                    <br />
+                    • Leaf nodes linked for sequential access
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -321,23 +391,6 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
           )}
         </div>
 
-        <div style={{ marginTop: '16px', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <input
-            type="checkbox"
-            id="skip-animation"
-            checked={skipAnimation}
-            onChange={(e) => setSkipAnimation(e.target.checked)}
-            style={{ cursor: 'pointer' }}
-          />
-          <label
-            htmlFor="skip-animation"
-            style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--gray-11)' }}
-          >
-            <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-            Skip animation
-          </label>
-        </div>
-
         <div className={styles.buttonGroup}>
           <button
             className={`${styles.btn} ${styles.btnPrimary}`}
@@ -354,9 +407,26 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         </div>
       </div>
 
-      {(treeType === 'binary' || treeType === 'avl' || treeType === 'b-tree') && (
+      {(treeType === 'binary' || treeType === 'avl' || treeType === 'b-tree' || treeType === 'b-plus-tree') && (
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>Operations</h3>
+
+          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              id="skip-operation-animation"
+              checked={skipOperationAnimation}
+              onChange={(e) => setSkipOperationAnimation(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            <label
+              htmlFor="skip-operation-animation"
+              style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--gray-11)' }}
+            >
+              <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+              Skip animation
+            </label>
+          </div>
 
           <div className={styles.inputGroup}>
             <label htmlFor="insert-input" className={styles.label}>
@@ -376,10 +446,24 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 onKeyDown={(e) => e.key === 'Enter' && handleInsert()}
               />
               <button
-                className={`${styles.btn} ${styles.btnPrimary}`}
+                className={styles.btn}
                 onClick={handleInsert}
                 disabled={!root || !insertValue}
                 aria-label="Insert value"
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = 'var(--green-9)';
+                    e.currentTarget.style.borderColor = 'var(--green-9)';
+                    e.currentTarget.style.color = 'white';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = '';
+                    e.currentTarget.style.borderColor = '';
+                    e.currentTarget.style.color = '';
+                  }
+                }}
               >
                 <Plus size={14} />
               </button>
@@ -413,6 +497,20 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 onClick={handleDelete}
                 disabled={!root || !deleteValue}
                 aria-label="Delete value"
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = 'var(--red-9)';
+                    e.currentTarget.style.borderColor = 'var(--red-9)';
+                    e.currentTarget.style.color = 'white';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = '';
+                    e.currentTarget.style.borderColor = '';
+                    e.currentTarget.style.color = '';
+                  }
+                }}
               >
                 <Minus size={14} />
               </button>
@@ -446,6 +544,20 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 onClick={handleSearch}
                 disabled={!root || !searchValue}
                 aria-label="Search value"
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = 'var(--blue-9)';
+                    e.currentTarget.style.borderColor = 'var(--blue-9)';
+                    e.currentTarget.style.color = 'white';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.background = '';
+                    e.currentTarget.style.borderColor = '';
+                    e.currentTarget.style.color = '';
+                  }
+                }}
               >
                 <Search size={14} />
               </button>
@@ -462,6 +574,23 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Traversals</h3>
 
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <input
+            type="checkbox"
+            id="skip-traversal-animation"
+            checked={skipTraversalAnimation}
+            onChange={(e) => setSkipTraversalAnimation(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          <label
+            htmlFor="skip-traversal-animation"
+            style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--gray-11)' }}
+          >
+            <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+            Skip animation
+          </label>
+        </div>
+
         <div className={styles.buttonGroup}>
           <button
             className={`${styles.btn} ${activeAction === 'inorder' ? styles.btnPrimary : ''}`}
@@ -471,7 +600,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
           >
             In-order
           </button>
-          {treeType !== 'b-tree' && (
+          {(treeType !== 'b-tree' && treeType !== 'b-plus-tree') && (
             <>
               <button
                 className={`${styles.btn} ${activeAction === 'preorder' ? styles.btnPrimary : ''}`}
@@ -499,6 +628,16 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
           >
             Level-order
           </button>
+          {treeType === 'b-plus-tree' && (
+            <button
+              className={`${styles.btn} ${activeAction === 'leaforder' ? styles.btnPrimary : ''}`}
+              aria-label="Execute leaf-order traversal"
+              onClick={() => handleTraversal('leaforder')}
+              disabled={!root}
+            >
+              Leaf-order
+            </button>
+          )}
         </div>
       </div>
     </>

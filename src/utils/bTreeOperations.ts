@@ -317,14 +317,11 @@ export function deleteBTreeWithSteps(
   for (const value of values) {
     if (root) {
       const { root: newRoot, steps } = deleteSingleValue(root, value);
-      root = newRoot;
 
-      steps.forEach((step) => {
-        allSteps.push({
-          ...step,
-          btree: cloneBTreeNode(root),
-        });
-      });
+      // Add steps with intermediate tree states already included
+      allSteps.push(...steps);
+
+      root = newRoot;
     }
   }
 
@@ -341,9 +338,10 @@ function deleteSingleValue(
   steps.push({
     highlightIds: [],
     message: `Deleting ${key} from B-Tree`,
+    btree: cloneBTreeNode(root),
   });
 
-  deleteFromNode(root, key, steps);
+  deleteFromNode(root, root, key, steps);
 
   // If root becomes empty, make its only child the new root
   if (root.keys.length === 0) {
@@ -351,12 +349,14 @@ function deleteSingleValue(
       steps.push({
         highlightIds: [root.id],
         message: `Root is empty, promoting child to new root`,
+        btree: cloneBTreeNode(root.children[0]),
       });
       return { root: root.children[0], steps };
     } else {
       steps.push({
         highlightIds: [],
         message: `Tree is now empty`,
+        btree: null,
       });
       return { root: null, steps };
     }
@@ -365,7 +365,7 @@ function deleteSingleValue(
   return { root, steps };
 }
 
-function deleteFromNode(node: BTreeNode, key: number, steps: Step[]): void {
+function deleteFromNode(rootRef: BTreeNode, node: BTreeNode, key: number, steps: Step[]): void {
   let i = 0;
   while (i < node.keys.length && key > node.keys[i]) {
     i++;
@@ -376,6 +376,7 @@ function deleteFromNode(node: BTreeNode, key: number, steps: Step[]): void {
     steps.push({
       highlightIds: [node.id],
       message: `Found ${key} in node [${node.keys.join(', ')}]`,
+      btree: cloneBTreeNode(rootRef),
     });
 
     if (node.isLeaf) {
@@ -383,15 +384,17 @@ function deleteFromNode(node: BTreeNode, key: number, steps: Step[]): void {
       steps.push({
         highlightIds: [node.id],
         message: `Deleting ${key} from leaf node`,
+        btree: cloneBTreeNode(rootRef),
       });
       node.keys.splice(i, 1);
       steps.push({
         highlightIds: [node.id],
         message: `Deleted ${key}, node is now [${node.keys.join(', ') || 'empty'}]`,
+        btree: cloneBTreeNode(rootRef),
       });
     } else {
       // Case 2: Key is in an internal node
-      deleteFromInternalNode(node, key, i, steps);
+      deleteFromInternalNode(rootRef, node, key, i, steps);
     }
   } else {
     // Key is not in this node
@@ -399,6 +402,7 @@ function deleteFromNode(node: BTreeNode, key: number, steps: Step[]): void {
       steps.push({
         highlightIds: [node.id],
         message: `${key} not found in tree`,
+        btree: cloneBTreeNode(rootRef),
       });
       return;
     }
@@ -409,12 +413,13 @@ function deleteFromNode(node: BTreeNode, key: number, steps: Step[]): void {
     steps.push({
       highlightIds: [node.id],
       message: `${key} not in this node, searching in child ${i}`,
+      btree: cloneBTreeNode(rootRef),
     });
 
     // If child has minimum keys, fill it first
     if (node.children[i].keys.length < MIN_DEGREE - 1) {
       const wasLastChild = (i === node.children.length - 1);
-      fill(node, i, steps);
+      fill(rootRef, node, i, steps);
 
       // After filling, the key position might have changed
       // Also, if we merged and the child was the last child, it got merged with i-1
@@ -429,7 +434,7 @@ function deleteFromNode(node: BTreeNode, key: number, steps: Step[]): void {
       }
 
       if (newI < node.keys.length && key === node.keys[newI]) {
-        deleteFromInternalNode(node, key, newI, steps);
+        deleteFromInternalNode(rootRef, node, key, newI, steps);
         return;
       }
 
@@ -437,21 +442,22 @@ function deleteFromNode(node: BTreeNode, key: number, steps: Step[]): void {
     }
 
     if (i < node.children.length) {
-      deleteFromNode(node.children[i], key, steps);
+      deleteFromNode(rootRef, node.children[i], key, steps);
 
       // After deletion, check if child has underflow and fix it
       if (i < node.children.length && node.children[i].keys.length < MIN_DEGREE - 1) {
         steps.push({
           highlightIds: [node.children[i].id],
           message: `Child node has underflow (${node.children[i].keys.length} keys < ${MIN_DEGREE - 1}), rebalancing`,
+          btree: cloneBTreeNode(rootRef),
         });
-        fill(node, i, steps);
+        fill(rootRef, node, i, steps);
       }
     }
   }
 }
 
-function deleteFromInternalNode(node: BTreeNode, key: number, i: number, steps: Step[]): void {
+function deleteFromInternalNode(rootRef: BTreeNode, node: BTreeNode, key: number, i: number, steps: Step[]): void {
   const t = MIN_DEGREE;
 
   if (node.children[i].keys.length >= t) {
@@ -460,17 +466,19 @@ function deleteFromInternalNode(node: BTreeNode, key: number, i: number, steps: 
     steps.push({
       highlightIds: [node.id, node.children[i].id],
       message: `Replacing ${key} with predecessor ${predecessor}`,
+      btree: cloneBTreeNode(rootRef),
     });
     node.keys[i] = predecessor;
-    deleteFromNode(node.children[i], predecessor, steps);
+    deleteFromNode(rootRef, node.children[i], predecessor, steps);
 
     // Check for underflow after deletion
     if (node.children[i].keys.length < t - 1) {
       steps.push({
         highlightIds: [node.children[i].id],
         message: `Child has underflow after deleting predecessor, rebalancing`,
+        btree: cloneBTreeNode(rootRef),
       });
-      fill(node, i, steps);
+      fill(rootRef, node, i, steps);
     }
   } else if (node.children[i + 1].keys.length >= t) {
     // Case 2b: Right child has at least t keys
@@ -478,34 +486,38 @@ function deleteFromInternalNode(node: BTreeNode, key: number, i: number, steps: 
     steps.push({
       highlightIds: [node.id, node.children[i + 1].id],
       message: `Replacing ${key} with successor ${successor}`,
+      btree: cloneBTreeNode(rootRef),
     });
     node.keys[i] = successor;
-    deleteFromNode(node.children[i + 1], successor, steps);
+    deleteFromNode(rootRef, node.children[i + 1], successor, steps);
 
     // Check for underflow after deletion
     if (node.children[i + 1].keys.length < t - 1) {
       steps.push({
         highlightIds: [node.children[i + 1].id],
         message: `Child has underflow after deleting successor, rebalancing`,
+        btree: cloneBTreeNode(rootRef),
       });
-      fill(node, i + 1, steps);
+      fill(rootRef, node, i + 1, steps);
     }
   } else {
     // Case 2c: Both children have t-1 keys, merge
     steps.push({
       highlightIds: [node.children[i].id, node.children[i + 1].id],
       message: `Both children have minimum keys, merging with key ${key}`,
+      btree: cloneBTreeNode(rootRef),
     });
-    merge(node, i, steps);
-    deleteFromNode(node.children[i], key, steps);
+    merge(rootRef, node, i, steps);
+    deleteFromNode(rootRef, node.children[i], key, steps);
 
     // Check for underflow after deletion from merged node
     if (i < node.children.length && node.children[i].keys.length < t - 1) {
       steps.push({
         highlightIds: [node.children[i].id],
         message: `Merged child has underflow, rebalancing`,
+        btree: cloneBTreeNode(rootRef),
       });
-      fill(node, i, steps);
+      fill(rootRef, node, i, steps);
     }
   }
 }
@@ -526,34 +538,35 @@ function getSuccessor(node: BTreeNode, i: number): number {
   return current.keys[0];
 }
 
-function fill(node: BTreeNode, i: number, steps: Step[]): void {
+function fill(rootRef: BTreeNode, node: BTreeNode, i: number, steps: Step[]): void {
   const t = MIN_DEGREE;
 
   // If previous sibling has at least t keys, borrow from it
   if (i !== 0 && node.children[i - 1].keys.length >= t) {
-    borrowFromPrev(node, i, steps);
+    borrowFromPrev(rootRef, node, i, steps);
   }
   // If next sibling has at least t keys, borrow from it
   else if (i !== node.children.length - 1 && node.children[i + 1].keys.length >= t) {
-    borrowFromNext(node, i, steps);
+    borrowFromNext(rootRef, node, i, steps);
   }
   // Merge with sibling
   else {
     if (i !== node.children.length - 1) {
-      merge(node, i, steps);
+      merge(rootRef, node, i, steps);
     } else {
-      merge(node, i - 1, steps);
+      merge(rootRef, node, i - 1, steps);
     }
   }
 }
 
-function borrowFromPrev(node: BTreeNode, childIndex: number, steps: Step[]): void {
+function borrowFromPrev(rootRef: BTreeNode, node: BTreeNode, childIndex: number, steps: Step[]): void {
   const child = node.children[childIndex];
   const sibling = node.children[childIndex - 1];
 
   steps.push({
     highlightIds: [child.id, sibling.id],
     message: `Borrowing key from left sibling to fix underflow`,
+    btree: cloneBTreeNode(rootRef),
   });
 
   // Move a key from parent to child
@@ -570,16 +583,18 @@ function borrowFromPrev(node: BTreeNode, childIndex: number, steps: Step[]): voi
   steps.push({
     highlightIds: [node.id, child.id, sibling.id],
     message: `Borrowed key ${node.keys[childIndex - 1]}, rebalanced nodes`,
+    btree: cloneBTreeNode(rootRef),
   });
 }
 
-function borrowFromNext(node: BTreeNode, childIndex: number, steps: Step[]): void {
+function borrowFromNext(rootRef: BTreeNode, node: BTreeNode, childIndex: number, steps: Step[]): void {
   const child = node.children[childIndex];
   const sibling = node.children[childIndex + 1];
 
   steps.push({
     highlightIds: [child.id, sibling.id],
     message: `Borrowing key from right sibling to fix underflow`,
+    btree: cloneBTreeNode(rootRef),
   });
 
   // Move a key from parent to child
@@ -596,16 +611,18 @@ function borrowFromNext(node: BTreeNode, childIndex: number, steps: Step[]): voi
   steps.push({
     highlightIds: [node.id, child.id, sibling.id],
     message: `Borrowed key ${node.keys[childIndex]}, rebalanced nodes`,
+    btree: cloneBTreeNode(rootRef),
   });
 }
 
-function merge(node: BTreeNode, i: number, steps: Step[]): void {
+function merge(rootRef: BTreeNode, node: BTreeNode, i: number, steps: Step[]): void {
   const child = node.children[i];
   const sibling = node.children[i + 1];
 
   steps.push({
     highlightIds: [child.id, sibling.id],
     message: `Merging nodes [${child.keys.join(', ')}] and [${sibling.keys.join(', ')}]`,
+    btree: cloneBTreeNode(rootRef),
   });
 
   // Pull key from current node and merge with right sibling
@@ -628,5 +645,6 @@ function merge(node: BTreeNode, i: number, steps: Step[]): void {
   steps.push({
     highlightIds: [node.id, child.id],
     message: `Merged into [${child.keys.join(', ')}]`,
+    btree: cloneBTreeNode(rootRef),
   });
 }

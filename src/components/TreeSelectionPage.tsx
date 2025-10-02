@@ -47,7 +47,7 @@ const treeOptions: TreeOption[] = [
     type: 'b-plus-tree',
     name: 'B+ Tree',
     description: 'Optimized variant of B-tree with data in leaf nodes',
-    status: 'coming-soon',
+    status: 'available',
     route: '/b-plus-tree',
     icon: <TreePine size={24} />,
     color: '#14b8a6',
