@@ -1,5 +1,7 @@
-import { Menu, Moon, Sun, X } from 'lucide-react';
+import { Menu, Moon, Sun, X, ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTreeStore } from '../state/useTreeStore';
 import styles from '../styles/app.module.css';
 
 interface TopbarProps {
@@ -10,6 +12,15 @@ interface TopbarProps {
   isRightDrawerOpen: boolean;
 }
 
+const treeTypeNames: Record<string, string> = {
+  binary: 'Binary Search Tree',
+  avl: 'AVL Tree',
+  'b-tree': 'B-Tree',
+  'b-plus-tree': 'B+ Tree',
+  'red-black': 'Red-Black Tree',
+  trie: 'Trie Tree',
+};
+
 export function Topbar({
   onSearchClick,
   onLeftMenuClick,
@@ -17,6 +28,8 @@ export function Topbar({
   isLeftDrawerOpen,
   isRightDrawerOpen,
 }: TopbarProps) {
+  const navigate = useNavigate();
+  const { treeType } = useTreeStore();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   useEffect(() => {
@@ -44,7 +57,18 @@ export function Topbar({
         >
           {isLeftDrawerOpen ? <X size={16} /> : <Menu size={16} />}
         </button>
-        <div className={styles.badge}>Binary Tree Visualizer</div>
+        <button
+          className={styles.btn}
+          onClick={() => navigate('/')}
+          style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}
+          aria-label="Back to home"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
+        <div className={styles.badge}>
+          {treeType ? treeTypeNames[treeType] : 'Tree Visualizer'}
+        </div>
       </div>
 
       <div className={styles.toolbarCenter}>

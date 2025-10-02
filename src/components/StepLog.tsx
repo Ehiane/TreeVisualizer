@@ -39,7 +39,7 @@ export function StepLog() {
     <div className={styles.card}>
       <h3 className={styles.cardTitle}>Step Log</h3>
 
-      <ul className={styles.stepList} ref={listRef}>
+      <ul className={styles.stepList} ref={listRef} style={{ listStyleType: 'none' }}>
         {steps.map((step, i) => {
           const isActive = i === index;
           const isPast = i < index;
@@ -56,6 +56,7 @@ export function StepLog() {
                 borderLeftColor: isActive ? 'var(--accent-9)' : 'transparent',
                 transition: 'all 0.3s ease',
                 cursor: 'pointer',
+                listStyleType: 'none',
               }}
               onClick={() => handleStepClick(i)}
             >

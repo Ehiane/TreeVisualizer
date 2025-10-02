@@ -1,7 +1,7 @@
 /* Layout */
 .container {
   display: grid;
-  grid-template-columns: 260px 1fr 380px;
+  grid-template-columns: 320px 1fr 380px;
   height: calc(100vh - 48px);
   overflow: hidden;
 }
@@ -398,6 +398,46 @@
 
 .mobileMenuBtn {
   display: none;
+}
+
+/* Tree Selection Cards */
+.treeCard {
+  background: linear-gradient(135deg, var(--bg) 0%, var(--bg-alt) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: var(--space-6);
+  text-align: left;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.treeCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--accent-9), var(--accent-11));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.treeCard:not(:disabled):hover::before {
+  opacity: 1;
+}
+
+.treeCard:not(:disabled):hover {
+  border-color: var(--accent-9);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+}
+
+.treeCard:not(:disabled):active {
+  transform: translateY(-4px) scale(1.01);
 }
 
 /* Responsive Design */

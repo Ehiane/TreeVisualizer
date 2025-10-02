@@ -1,7 +1,10 @@
 import { create } from 'zustand';
 import { TreeNode, Step } from '../types';
 
+export type TreeType = 'binary' | 'avl' | 'b-tree' | 'b-plus-tree' | 'red-black' | 'trie';
+
 interface TreeState {
+  treeType: TreeType | null;
   root: TreeNode | null;
   steps: Step[];
   index: number;
@@ -12,6 +15,7 @@ interface TreeState {
 }
 
 interface TreeActions {
+  setTreeType: (type: TreeType) => void;
   setRoot: (root: TreeNode | null) => void;
   setSteps: (steps: Step[], actionType?: string) => void;
   goto: (i: number) => void;
@@ -26,6 +30,7 @@ interface TreeActions {
 
 export const useTreeStore = create<TreeState & TreeActions>((set, get) => ({
   // State
+  treeType: null,
   root: null,
   steps: [],
   index: -1,
@@ -35,6 +40,8 @@ export const useTreeStore = create<TreeState & TreeActions>((set, get) => ({
   activeAction: null,
 
   // Actions
+  setTreeType: (type) => set({ treeType: type }),
+
   setRoot: (root) => set({ root }),
 
   setSteps: (steps, actionType) => set({ steps, index: -1, activeAction: actionType || null }),

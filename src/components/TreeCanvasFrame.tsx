@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Info } from 'lucide-react';
 import styles from '../styles/app.module.css';
 import { useTreeStore } from '../state/useTreeStore';
 import { TreeCanvas } from './TreeCanvas';
+import { InfoModal } from './InfoModal';
 
 export function TreeCanvasFrame() {
-  const { root, steps, index, playing, next, prev, play, pause, reset, playbackSpeed, setPlaybackSpeed } = useTreeStore();
+  const { root, steps, index, playing, next, prev, play, pause, reset, playbackSpeed, setPlaybackSpeed, treeType } = useTreeStore();
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -163,8 +165,29 @@ export function TreeCanvasFrame() {
               </p>
             </div>
           )}
+
+          {/* Info button */}
+          <button
+            className={`${styles.btn} ${styles.btnIcon}`}
+            onClick={() => setIsInfoModalOpen(true)}
+            style={{
+              position: 'absolute',
+              bottom: '16px',
+              left: '16px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            }}
+            aria-label="Learn more about this tree"
+          >
+            <Info size={16} />
+          </button>
         </div>
       </div>
+
+      <InfoModal
+        isOpen={isInfoModalOpen}
+        onClose={() => setIsInfoModalOpen(false)}
+        treeType={treeType}
+      />
 
       <div className={styles.card}>
         <div className={styles.transport}>

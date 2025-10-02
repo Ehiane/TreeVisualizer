@@ -1,9 +1,12 @@
 import { useState, forwardRef, useImperativeHandle } from 'react';
-import { PlayCircle, Trash2, Zap } from 'lucide-react';
+import { PlayCircle, Trash2, Zap, Search, Plus, Minus } from 'lucide-react';
 import styles from '../styles/app.module.css';
 import { useTreeStore } from '../state/useTreeStore';
 import { buildTree, buildTreeWithSteps, validateInput } from '../utils/buildTree';
+import { buildAVLTree, buildAVLTreeWithSteps } from '../utils/avlTree';
 import { executeTraversal, TraversalType } from '../utils/traversals';
+import { insertWithSteps, searchWithSteps, deleteWithSteps } from '../utils/bstOperations';
+import { insertAVLWithSteps, searchAVLWithSteps, deleteAVLWithSteps } from '../utils/avlOperations';
 import { NotificationModal } from './NotificationModal';
 
 export interface SidebarRef {
@@ -17,8 +20,11 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
   const [error, setError] = useState('');
   const [skipAnimation, setSkipAnimation] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [insertValue, setInsertValue] = useState('');
+  const [deleteValue, setDeleteValue] = useState('');
+  const [searchValue, setSearchValue] = useState('');
 
-  const { root, setRoot, setSteps, clear, play, activeAction } = useTreeStore();
+  const { root, setRoot, setSteps, clear, play, activeAction, treeType } = useTreeStore();
 
   const handleBuildTree = () => {
     setError('');
@@ -31,12 +37,14 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
 
     if (skipAnimation) {
       // Build tree instantly without animation
-      const tree = buildTree(arrayInput);
+      const tree = treeType === 'avl' ? buildAVLTree(arrayInput) : buildTree(arrayInput);
       setRoot(tree);
       setSteps([]);
     } else {
       // Build tree with animation
-      const { root: tree, steps } = buildTreeWithSteps(arrayInput);
+      const { root: tree, steps } = treeType === 'avl'
+        ? buildAVLTreeWithSteps(arrayInput)
+        : buildTreeWithSteps(arrayInput);
       setRoot(tree);
       setSteps(steps, 'build');
       // Auto-play the build animation
@@ -62,6 +70,41 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
     setTimeout(() => play(), 100);
   };
 
+  const handleInsert = () => {
+    if (!root || !insertValue.trim()) return;
+
+    const { root: newRoot, steps } = treeType === 'avl'
+      ? insertAVLWithSteps(root, insertValue)
+      : insertWithSteps(root, insertValue);
+    setRoot(newRoot);
+    setSteps(steps, 'insert');
+    setInsertValue('');
+    setTimeout(() => play(), 100);
+  };
+
+  const handleDelete = () => {
+    if (!root || !deleteValue.trim()) return;
+
+    const { root: newRoot, steps } = treeType === 'avl'
+      ? deleteAVLWithSteps(root, deleteValue)
+      : deleteWithSteps(root, deleteValue);
+    setRoot(newRoot);
+    setSteps(steps, 'delete');
+    setDeleteValue('');
+    setTimeout(() => play(), 100);
+  };
+
+  const handleSearch = () => {
+    if (!root || !searchValue.trim()) return;
+
+    const { steps } = treeType === 'avl'
+      ? searchAVLWithSteps(root, searchValue)
+      : searchWithSteps(root, searchValue);
+    setSteps(steps, 'search');
+    setSearchValue('');
+    setTimeout(() => play(), 100);
+  };
+
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     buildTree: handleBuildTree,
@@ -79,7 +122,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       />
 
       <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Inputs</h3>
+        <h3 className={styles.cardTitle}>Input</h3>
 
         <div className={styles.inputGroup}>
           <label htmlFor="array-input" className={styles.label}>
@@ -135,8 +178,89 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         </div>
       </div>
 
+      {(treeType === 'binary' || treeType === 'avl') && (
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>Operations</h3>
+
+          <div className={styles.inputGroup}>
+            <label htmlFor="insert-input" className={styles.label}>
+              Insert
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                id="insert-input"
+                type="text"
+                className={styles.input}
+                placeholder="Value"
+                value={insertValue}
+                onChange={(e) => setInsertValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleInsert()}
+              />
+              <button
+                className={`${styles.btn} ${styles.btnPrimary}`}
+                onClick={handleInsert}
+                disabled={!root || !insertValue}
+                aria-label="Insert value"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label htmlFor="delete-input" className={styles.label}>
+              Delete
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                id="delete-input"
+                type="text"
+                className={styles.input}
+                placeholder="Value"
+                value={deleteValue}
+                onChange={(e) => setDeleteValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleDelete()}
+              />
+              <button
+                className={styles.btn}
+                onClick={handleDelete}
+                disabled={!root || !deleteValue}
+                aria-label="Delete value"
+              >
+                <Minus size={14} />
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label htmlFor="search-input" className={styles.label}>
+              Search
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                id="search-input"
+                type="text"
+                className={styles.input}
+                placeholder="Value"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <button
+                className={styles.btn}
+                onClick={handleSearch}
+                disabled={!root || !searchValue}
+                aria-label="Search value"
+              >
+                <Search size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Actions</h3>
+        <h3 className={styles.cardTitle}>Traversals</h3>
 
         <div className={styles.buttonGroup}>
           <button
