@@ -1,18 +1,21 @@
 import { useState, forwardRef, useImperativeHandle } from 'react';
-import { PlayCircle, Trash2, Zap, Search, Plus, Minus } from 'lucide-react';
+import { PlayCircle, Trash2, Zap, Search, Plus, Minus, Info } from 'lucide-react';
 import styles from '../styles/app.module.css';
 import { useTreeStore } from '../state/useTreeStore';
 import { buildTree, buildTreeWithSteps, validateInput } from '../utils/buildTree';
 import { buildAVLTree, buildAVLTreeWithSteps } from '../utils/avlTree';
+import { buildBTree, buildBTreeWithSteps, setMinDegree } from '../utils/bTree';
 import { executeTraversal, TraversalType } from '../utils/traversals';
+import { executeBTreeTraversal, BTreeTraversalType } from '../utils/bTreeTraversals';
 import { insertWithSteps, searchWithSteps, deleteWithSteps } from '../utils/bstOperations';
 import { insertAVLWithSteps, searchAVLWithSteps, deleteAVLWithSteps } from '../utils/avlOperations';
+import { insertBTreeWithSteps, searchBTreeWithSteps as searchBTree, deleteBTreeWithSteps } from '../utils/bTreeOperations';
 import { NotificationModal } from './NotificationModal';
 
 export interface SidebarRef {
   buildTree: () => void;
   clearTree: () => void;
-  runTraversal: (type: TraversalType) => void;
+  runTraversal: (type: TraversalType | BTreeTraversalType) => void;
 }
 
 export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
@@ -23,11 +26,18 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
   const [insertValue, setInsertValue] = useState('');
   const [deleteValue, setDeleteValue] = useState('');
   const [searchValue, setSearchValue] = useState('');
+  const [minDegree, setMinDegree] = useState('3');
+  const [showMinDegreeInfo, setShowMinDegreeInfo] = useState(false);
+  const [minDegreeError, setMinDegreeError] = useState('');
+  const [insertError, setInsertError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [searchError, setSearchError] = useState('');
 
   const { root, setRoot, setSteps, clear, play, activeAction, treeType } = useTreeStore();
 
   const handleBuildTree = () => {
     setError('');
+    setMinDegreeError('');
 
     const validation = validateInput(arrayInput);
     if (!validation.valid) {
@@ -35,15 +45,48 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       return;
     }
 
+    // Set minimum degree for B-Trees
+    if (treeType === 'b-tree') {
+      const degree = parseInt(minDegree);
+
+      if (isNaN(degree)) {
+        setMinDegreeError('Minimum degree must be a number');
+        return;
+      }
+
+      if (degree < 2) {
+        setMinDegreeError('Minimum degree must be at least 2');
+        return;
+      }
+
+      if (degree > 100) {
+        setMinDegreeError('Minimum degree too large (max: 100)');
+        return;
+      }
+
+      if (!Number.isInteger(degree)) {
+        setMinDegreeError('Minimum degree must be a whole number');
+        return;
+      }
+
+      setMinDegree(degree);
+    }
+
     if (skipAnimation) {
       // Build tree instantly without animation
-      const tree = treeType === 'avl' ? buildAVLTree(arrayInput) : buildTree(arrayInput);
+      const tree = treeType === 'avl'
+        ? buildAVLTree(arrayInput)
+        : treeType === 'b-tree'
+        ? buildBTree(arrayInput)
+        : buildTree(arrayInput);
       setRoot(tree);
       setSteps([]);
     } else {
       // Build tree with animation
       const { root: tree, steps } = treeType === 'avl'
         ? buildAVLTreeWithSteps(arrayInput)
+        : treeType === 'b-tree'
+        ? buildBTreeWithSteps(arrayInput)
         : buildTreeWithSteps(arrayInput);
       setRoot(tree);
       setSteps(steps, 'build');
@@ -55,26 +98,73 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
   const handleClear = () => {
     setArrayInput('');
     setError('');
+    setMinDegreeError('');
+    setInsertError('');
+    setDeleteError('');
+    setSearchError('');
     clear();
   };
 
-  const handleTraversal = (type: TraversalType) => {
+  const handleTraversal = (type: TraversalType | BTreeTraversalType) => {
     if (!root) {
       setIsModalOpen(true);
       return;
     }
 
     setError('');
-    const steps = executeTraversal(root, type);
+
+    // Use B-Tree traversals for B-Trees
+    const steps = treeType === 'b-tree'
+      ? executeBTreeTraversal(root, type as BTreeTraversalType)
+      : executeTraversal(root, type as TraversalType);
+
     setSteps(steps, type);
     setTimeout(() => play(), 100);
   };
 
+  const validateOperationInput = (input: string, operationName: string): { valid: boolean; error?: string } => {
+    if (!input.trim()) {
+      return { valid: false, error: `Please enter value(s) to ${operationName}` };
+    }
+
+    // Parse input - handle array notation or comma-separated values
+    const cleanInput = input.trim().replace(/^\[|\]$/g, '');
+    const values = cleanInput
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => v !== '');
+
+    if (values.length === 0) {
+      return { valid: false, error: 'No valid values found' };
+    }
+
+    for (const v of values) {
+      if (isNaN(parseFloat(v))) {
+        return { valid: false, error: `Invalid number: "${v}"` };
+      }
+    }
+
+    return { valid: true };
+  };
+
   const handleInsert = () => {
-    if (!root || !insertValue.trim()) return;
+    setInsertError('');
+
+    if (!root) {
+      setInsertError('Please build a tree first');
+      return;
+    }
+
+    const validation = validateOperationInput(insertValue, 'insert');
+    if (!validation.valid) {
+      setInsertError(validation.error || 'Invalid input');
+      return;
+    }
 
     const { root: newRoot, steps } = treeType === 'avl'
       ? insertAVLWithSteps(root, insertValue)
+      : treeType === 'b-tree'
+      ? insertBTreeWithSteps(root, insertValue, parseInt(minDegree) || 3)
       : insertWithSteps(root, insertValue);
     setRoot(newRoot);
     setSteps(steps, 'insert');
@@ -83,10 +173,23 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
   };
 
   const handleDelete = () => {
-    if (!root || !deleteValue.trim()) return;
+    setDeleteError('');
+
+    if (!root) {
+      setDeleteError('Please build a tree first');
+      return;
+    }
+
+    const validation = validateOperationInput(deleteValue, 'delete');
+    if (!validation.valid) {
+      setDeleteError(validation.error || 'Invalid input');
+      return;
+    }
 
     const { root: newRoot, steps } = treeType === 'avl'
       ? deleteAVLWithSteps(root, deleteValue)
+      : treeType === 'b-tree'
+      ? deleteBTreeWithSteps(root, deleteValue, parseInt(minDegree) || 3)
       : deleteWithSteps(root, deleteValue);
     setRoot(newRoot);
     setSteps(steps, 'delete');
@@ -95,10 +198,23 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
   };
 
   const handleSearch = () => {
-    if (!root || !searchValue.trim()) return;
+    setSearchError('');
+
+    if (!root) {
+      setSearchError('Please build a tree first');
+      return;
+    }
+
+    const validation = validateOperationInput(searchValue, 'search for');
+    if (!validation.valid) {
+      setSearchError(validation.error || 'Invalid input');
+      return;
+    }
 
     const { steps } = treeType === 'avl'
       ? searchAVLWithSteps(root, searchValue)
+      : treeType === 'b-tree'
+      ? searchBTree(root, searchValue)
       : searchWithSteps(root, searchValue);
     setSteps(steps, 'search');
     setSearchValue('');
@@ -123,6 +239,66 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
 
       <div className={styles.card}>
         <h3 className={styles.cardTitle}>Input</h3>
+
+        {treeType === 'b-tree' && (
+          <div className={styles.inputGroup}>
+            <label htmlFor="min-degree-input" className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              Minimum Degree (t)
+              <button
+                type="button"
+                className={`${styles.btn} ${styles.btnIcon}`}
+                onClick={() => setShowMinDegreeInfo(!showMinDegreeInfo)}
+                aria-label="Info about minimum degree"
+                style={{ padding: '2px', width: '20px', height: '20px' }}
+              >
+                <Info size={12} />
+              </button>
+            </label>
+            <input
+              id="min-degree-input"
+              type="number"
+              min="2"
+              max="100"
+              step="1"
+              className={styles.input}
+              placeholder="e.g., 3"
+              value={minDegree}
+              onChange={(e) => {
+                setMinDegree(e.target.value);
+                setMinDegreeError('');
+              }}
+            />
+            {minDegreeError && (
+              <p style={{ color: 'var(--red-9)', fontSize: '12px', marginTop: '4px' }}>
+                {minDegreeError}
+              </p>
+            )}
+            {showMinDegreeInfo && (
+              <div style={{
+                padding: 'var(--space-3)',
+                backgroundColor: 'var(--accent-3)',
+                border: '1px solid var(--accent-9)',
+                borderRadius: 'var(--radius)',
+                fontSize: '12px',
+                marginTop: 'var(--space-2)',
+                lineHeight: '1.5',
+                color: 'var(--fg)',
+              }}>
+                <strong>Minimum Degree (t):</strong>
+                <br />
+                • Must be an integer ≥ 2
+                <br />
+                • Each node has at most <strong>2t-1 keys</strong>
+                <br />
+                • Each node (except root) has at least <strong>t-1 keys</strong>
+                <br />
+                • Example: t=3 means 2-5 keys per node
+                <br />
+                • Higher t = wider, shorter trees
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={styles.inputGroup}>
           <label htmlFor="array-input" className={styles.label}>
@@ -178,7 +354,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         </div>
       </div>
 
-      {(treeType === 'binary' || treeType === 'avl') && (
+      {(treeType === 'binary' || treeType === 'avl' || treeType === 'b-tree') && (
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>Operations</h3>
 
@@ -191,9 +367,12 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 id="insert-input"
                 type="text"
                 className={styles.input}
-                placeholder="Value"
+                placeholder="Value or [10, 20, 30]"
                 value={insertValue}
-                onChange={(e) => setInsertValue(e.target.value)}
+                onChange={(e) => {
+                  setInsertValue(e.target.value);
+                  setInsertError('');
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleInsert()}
               />
               <button
@@ -205,6 +384,11 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 <Plus size={14} />
               </button>
             </div>
+            {insertError && (
+              <p style={{ color: 'var(--red-9)', fontSize: '12px', marginTop: '4px' }}>
+                {insertError}
+              </p>
+            )}
           </div>
 
           <div className={styles.inputGroup}>
@@ -216,9 +400,12 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 id="delete-input"
                 type="text"
                 className={styles.input}
-                placeholder="Value"
+                placeholder="Value or [10, 20, 30]"
                 value={deleteValue}
-                onChange={(e) => setDeleteValue(e.target.value)}
+                onChange={(e) => {
+                  setDeleteValue(e.target.value);
+                  setDeleteError('');
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleDelete()}
               />
               <button
@@ -230,6 +417,11 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 <Minus size={14} />
               </button>
             </div>
+            {deleteError && (
+              <p style={{ color: 'var(--red-9)', fontSize: '12px', marginTop: '4px' }}>
+                {deleteError}
+              </p>
+            )}
           </div>
 
           <div className={styles.inputGroup}>
@@ -241,9 +433,12 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 id="search-input"
                 type="text"
                 className={styles.input}
-                placeholder="Value"
+                placeholder="Value or [10, 20, 30]"
                 value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setSearchError('');
+                }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               />
               <button
@@ -255,6 +450,11 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 <Search size={14} />
               </button>
             </div>
+            {searchError && (
+              <p style={{ color: 'var(--red-9)', fontSize: '12px', marginTop: '4px' }}>
+                {searchError}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -271,22 +471,26 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
           >
             In-order
           </button>
-          <button
-            className={`${styles.btn} ${activeAction === 'preorder' ? styles.btnPrimary : ''}`}
-            aria-label="Execute pre-order traversal"
-            onClick={() => handleTraversal('preorder')}
-            disabled={!root}
-          >
-            Pre-order
-          </button>
-          <button
-            className={`${styles.btn} ${activeAction === 'postorder' ? styles.btnPrimary : ''}`}
-            aria-label="Execute post-order traversal"
-            onClick={() => handleTraversal('postorder')}
-            disabled={!root}
-          >
-            Post-order
-          </button>
+          {treeType !== 'b-tree' && (
+            <>
+              <button
+                className={`${styles.btn} ${activeAction === 'preorder' ? styles.btnPrimary : ''}`}
+                aria-label="Execute pre-order traversal"
+                onClick={() => handleTraversal('preorder')}
+                disabled={!root}
+              >
+                Pre-order
+              </button>
+              <button
+                className={`${styles.btn} ${activeAction === 'postorder' ? styles.btnPrimary : ''}`}
+                aria-label="Execute post-order traversal"
+                onClick={() => handleTraversal('postorder')}
+                disabled={!root}
+              >
+                Post-order
+              </button>
+            </>
+          )}
           <button
             className={`${styles.btn} ${activeAction === 'levelorder' ? styles.btnPrimary : ''}`}
             aria-label="Execute level-order traversal"

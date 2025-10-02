@@ -38,7 +38,7 @@ const treeOptions: TreeOption[] = [
     type: 'b-tree',
     name: 'B-Tree',
     description: 'Multi-way search tree optimized for disk access',
-    status: 'coming-soon',
+    status: 'available',
     route: '/b-tree',
     icon: <Database size={24} />,
     color: '#10b981',

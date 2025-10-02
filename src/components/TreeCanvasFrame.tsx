@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, Info } from 'lucide-
 import styles from '../styles/app.module.css';
 import { useTreeStore } from '../state/useTreeStore';
 import { TreeCanvas } from './TreeCanvas';
+import { BTreeCanvas } from './BTreeCanvas';
 import { InfoModal } from './InfoModal';
 
 export function TreeCanvasFrame() {
@@ -21,13 +22,18 @@ export function TreeCanvasFrame() {
   const currentValue = currentStep?.currentValue;
 
   // Use tree from step if available (for incremental building), otherwise use main root
-  const displayTree = currentStep?.tree !== undefined ? currentStep.tree : root;
+  // For B-Trees, use btree field, for binary trees use tree field
+  const displayTree = treeType === 'b-tree'
+    ? (currentStep?.btree !== undefined ? currentStep.btree : root)
+    : (currentStep?.tree !== undefined ? currentStep.tree : root);
 
   const canGoPrev = index > -1;
   const canGoNext = index < steps.length - 1;
   const hasSteps = steps.length > 0;
 
-  const treeData = TreeCanvas({ root: displayTree, highlightIds });
+  const treeData = treeType === 'b-tree'
+    ? BTreeCanvas({ root: displayTree, highlightIds })
+    : TreeCanvas({ root: displayTree, highlightIds });
 
   // Handle mouse drag to pan the SVG
   const handleMouseDown = (e: React.MouseEvent) => {
