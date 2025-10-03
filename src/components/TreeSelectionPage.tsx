@@ -125,8 +125,27 @@ export function TreeSelectionPage() {
             color: 'var(--fg)',
             margin: '0 0 var(--space-3) 0',
           }}>
-            Tree Visualizer
+            Tree Inspect
           </h1>
+          <p style={{
+            fontSize: '20px',
+            fontWeight: '500',
+            color: 'var(--fg-muted)',
+            margin: '0 0 var(--space-2) 0',
+          }}>
+            The Ultimate Tree Visualizer for any
+            <span
+              style={{
+                animation: 'rainbow-glow 3s linear infinite',
+                cursor: 'help',
+                fontWeight: '700',
+              }}
+              title="Request new tree types via feedback (button at the bottom-right)!"
+            >
+              *
+            </span>
+            {' '}Tree type
+          </p>
           <p style={{
             fontSize: '16px',
             color: 'var(--fg-muted)',
@@ -134,6 +153,17 @@ export function TreeSelectionPage() {
           }}>
             Choose a tree data structure to visualize
           </p>
+          <style>{`
+            @keyframes rainbow-glow {
+              0% { color: #ef4444; text-shadow: 0 0 10px #ef4444; }
+              16.67% { color: #f97316; text-shadow: 0 0 10px #f97316; }
+              33.33% { color: #f59e0b; text-shadow: 0 0 10px #f59e0b; }
+              50% { color: #22c55e; text-shadow: 0 0 10px #22c55e; }
+              66.67% { color: #3b82f6; text-shadow: 0 0 10px #3b82f6; }
+              83.33% { color: #8b5cf6; text-shadow: 0 0 10px #8b5cf6; }
+              100% { color: #ef4444; text-shadow: 0 0 10px #ef4444; }
+            }
+          `}</style>
         </div>
 
         <div style={{
