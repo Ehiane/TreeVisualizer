@@ -6,6 +6,7 @@ import { BTreePage } from './pages/BTreePage';
 import { BPlusTreePage } from './pages/BPlusTreePage';
 import { RedBlackTreePage } from './pages/RedBlackTreePage';
 import { TriePage } from './pages/TriePage';
+import { FeedbackButton } from './components/FeedbackButton';
 import './styles/tokens.css';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
         <Route path="/red-black" element={<RedBlackTreePage />} />
         <Route path="/trie" element={<TriePage />} />
       </Routes>
+      <FeedbackButton />
     </Router>
   );
 }
