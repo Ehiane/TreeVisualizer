@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Moon, Sun, GitBranch, Network, Database, TreePine, Binary, BookOpen } from 'lucide-react';
+import { Moon, Sun, GitBranch, Network, Database, TreePine, Binary, BookOpen, Github } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import styles from '../styles/app.module.css';
 
@@ -209,6 +209,52 @@ export function TreeSelectionPage() {
             </button>
           ))}
         </div>
+
+        {/* Footer */}
+        <footer style={{
+          marginTop: '48px',
+          paddingTop: '24px',
+          borderTop: '1px solid var(--border)',
+          textAlign: 'center',
+        }}>
+          <p style={{
+            fontSize: '14px',
+            color: 'var(--fg-muted)',
+            margin: '0 0 12px 0',
+          }}>
+            Built by <a
+              href="https://github.com/Ehiane"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: 'var(--accent-9)',
+                textDecoration: 'none',
+                fontWeight: 500,
+              }}
+            >
+              Ehiane
+            </a>
+          </p>
+          <a
+            href="https://github.com/Ehiane/TreeVisualizer"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              color: 'var(--fg-muted)',
+              textDecoration: 'none',
+              transition: 'color 0.2s',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-9)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--fg-muted)'}
+          >
+            <Github size={16} />
+            View on GitHub
+          </a>
+        </footer>
       </div>
     </div>
   );
