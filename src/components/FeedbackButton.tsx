@@ -88,6 +88,20 @@ export function FeedbackButton() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <MessageSquare size={20} style={{ color: 'var(--accent-9)' }} />
                 <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Send Feedback</h3>
+                <span
+                  style={{
+                    padding: '2px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    borderRadius: '4px',
+                    background: 'var(--accent-3)',
+                    color: 'var(--accent-11)',
+                    cursor: 'help',
+                  }}
+                  title="This feature may or may not be working"
+                >
+                  BETA
+                </span>
                 <button
                   className={styles.btnIcon}
                   onClick={() => setIsOpen(false)}
