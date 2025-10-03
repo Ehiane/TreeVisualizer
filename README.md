@@ -260,7 +260,3 @@ Built with modern web technologies:
 ## 📧 Contact
 
 For questions, suggestions, or feedback, please open an issue on GitHub.
-
----
-
-Made with ❤️ for learning and teaching tree data structures
