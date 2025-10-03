@@ -186,23 +186,26 @@ export function BPlusTreeCanvas({ root, highlightIds, highlightKeys = [], active
       );
 
       // Determine border color based on action
-      let borderColor = pos.node.isLeaf ? 'var(--green-9)' : 'var(--border)';
-      if ((isKeyHighlighted || isHighlighted) && activeAction) {
+      let borderColor = 'var(--border)';
+      if (isKeyHighlighted && activeAction) {
         if (activeAction === 'insert') borderColor = 'var(--green-9)';
         else if (activeAction === 'delete') borderColor = 'var(--red-9)';
         else if (activeAction === 'search') borderColor = 'var(--blue-9)';
+        else if (activeAction === 'build') borderColor = 'var(--accent-9)';
         else borderColor = 'var(--accent-9)'; // default blue for other actions
+      } else if (isHighlighted && activeAction === 'build') {
+        // For build action, highlight entire node
+        borderColor = 'var(--accent-9)';
       }
 
-      // Leaf nodes have a different style (light green tint for leaves)
-      const fillColor = isKeyHighlighted
-        ? 'var(--accent-3)'
-        : isHighlighted
-        ? 'var(--accent-3)'
-        : (pos.node.isLeaf ? '#f0fdf4' : 'var(--bg)');
-      const strokeColor = (isKeyHighlighted || isHighlighted)
+      // Fill color - only highlight specific keys, not entire nodes (unless it's build action)
+      const shouldHighlight = isKeyHighlighted || (isHighlighted && activeAction === 'build');
+      const fillColor = shouldHighlight
+        ? 'var(--accent-9)'
+        : 'var(--bg)';
+      const strokeColor = shouldHighlight
         ? borderColor
-        : (pos.node.isLeaf ? 'var(--green-9)' : 'var(--border)');
+        : 'var(--border)';
 
       nodeGroup.push(
         <rect
@@ -225,9 +228,9 @@ export function BPlusTreeCanvas({ root, highlightIds, highlightKeys = [], active
           y={pos.y + NODE_HEIGHT / 2}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={(isKeyHighlighted || isHighlighted) ? 'var(--accent-11)' : 'var(--gray-12)'}
+          fill={shouldHighlight ? 'white' : 'var(--gray-12)'}
           fontSize="16"
-          fontWeight={(isKeyHighlighted || isHighlighted) ? '600' : '400'}
+          fontWeight={shouldHighlight ? '600' : '400'}
         >
           {key}
         </text>

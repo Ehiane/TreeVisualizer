@@ -3,6 +3,7 @@ import { BTreeNode } from '../types';
 interface BTreeCanvasProps {
   root: BTreeNode | null;
   highlightIds: string[];
+  highlightKeys?: { nodeId: string; keyIndex: number }[];
   activeAction?: string | null;
 }
 
@@ -19,7 +20,7 @@ const KEY_PADDING = 8;
 const LEVEL_GAP = 120;
 const MIN_SIBLING_GAP = 30;
 
-export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasProps): {
+export function BTreeCanvas({ root, highlightIds, highlightKeys = [], activeAction }: BTreeCanvasProps): {
   content: JSX.Element;
   viewBox: string;
 } {
@@ -144,14 +145,25 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
     pos.node.keys.forEach((key, index) => {
       const keyX = pos.x + index * (KEY_WIDTH + KEY_PADDING);
 
+      // Check if this specific key should be highlighted
+      const isKeyHighlighted = highlightKeys.some(
+        hk => hk.nodeId === pos.node.id && hk.keyIndex === index
+      );
+
       // Determine border color based on action
       let borderColor = 'var(--border)';
-      if (isHighlighted && activeAction) {
+      if (isKeyHighlighted && activeAction) {
         if (activeAction === 'insert') borderColor = 'var(--green-9)';
         else if (activeAction === 'delete') borderColor = 'var(--red-9)';
         else if (activeAction === 'search') borderColor = 'var(--blue-9)';
         else borderColor = 'var(--accent-9)'; // default blue for other actions
+      } else if (isHighlighted && activeAction === 'build') {
+        // For build action, highlight entire node
+        borderColor = 'var(--accent-9)';
       }
+
+      // Only highlight specific keys, not entire nodes (unless it's build action)
+      const shouldHighlight = isKeyHighlighted || (isHighlighted && activeAction === 'build');
 
       nodeGroup.push(
         <rect
@@ -160,9 +172,9 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
           y={pos.y}
           width={KEY_WIDTH}
           height={NODE_HEIGHT}
-          fill={isHighlighted ? 'var(--accent-3)' : 'var(--bg)'}
-          stroke={isHighlighted ? borderColor : 'var(--border)'}
-          strokeWidth={isHighlighted ? 3 : 2}
+          fill={shouldHighlight ? 'var(--accent-9)' : 'var(--bg)'}
+          stroke={shouldHighlight ? borderColor : 'var(--border)'}
+          strokeWidth={shouldHighlight ? 3 : 2}
           rx="6"
         />
       );
@@ -174,9 +186,9 @@ export function BTreeCanvas({ root, highlightIds, activeAction }: BTreeCanvasPro
           y={pos.y + NODE_HEIGHT / 2}
           textAnchor="middle"
           dominantBaseline="middle"
-          fill={isHighlighted ? 'var(--accent-11)' : 'var(--gray-12)'}
+          fill={shouldHighlight ? 'white' : 'var(--gray-12)'}
           fontSize="16"
-          fontWeight={isHighlighted ? '600' : '400'}
+          fontWeight={shouldHighlight ? '600' : '400'}
         >
           {key}
         </text>

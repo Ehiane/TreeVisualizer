@@ -4,6 +4,8 @@ import { BinaryTreePage } from './pages/BinaryTreePage';
 import { AVLTreePage } from './pages/AVLTreePage';
 import { BTreePage } from './pages/BTreePage';
 import { BPlusTreePage } from './pages/BPlusTreePage';
+import { RedBlackTreePage } from './pages/RedBlackTreePage';
+import { TriePage } from './pages/TriePage';
 import './styles/tokens.css';
 
 function App() {
@@ -15,8 +17,8 @@ function App() {
         <Route path="/avl" element={<AVLTreePage />} />
         <Route path="/b-tree" element={<BTreePage />} />
         <Route path="/b-plus-tree" element={<BPlusTreePage />} />
-        <Route path="/red-black" element={<div style={{ padding: '2rem', textAlign: 'center' }}>Red-Black Tree - Coming Soon</div>} />
-        <Route path="/trie" element={<div style={{ padding: '2rem', textAlign: 'center' }}>Trie Tree - Coming Soon</div>} />
+        <Route path="/red-black" element={<RedBlackTreePage />} />
+        <Route path="/trie" element={<TriePage />} />
       </Routes>
     </Router>
   );

@@ -112,6 +112,11 @@ export function TreeCanvas({ root, highlightIds, activeAction }: TreeCanvasProps
       {positions.map(({ x, y, node }) => {
         const isHighlighted = highlightIds.includes(node.id);
 
+        // Check if this is a Red-Black tree node
+        const rbNode = node as any;
+        const isRedBlackNode = rbNode.color !== undefined;
+        const nodeColor = isRedBlackNode ? rbNode.color : null;
+
         // Determine border color based on action
         let borderColor = 'var(--border)';
         if (isHighlighted && activeAction) {
@@ -121,6 +126,18 @@ export function TreeCanvas({ root, highlightIds, activeAction }: TreeCanvasProps
           else borderColor = 'var(--accent-9)'; // default blue for other actions
         }
 
+        // Determine fill color - Red-Black tree uses node colors when not highlighted
+        let fillColor = isHighlighted ? 'var(--accent-9)' : 'var(--bg)';
+        if (!isHighlighted && isRedBlackNode) {
+          fillColor = nodeColor === 'red' ? '#dc2626' : '#171717'; // red-600 or neutral-900
+        }
+
+        // Text color for Red-Black nodes
+        let textColor = isHighlighted ? 'white' : 'var(--gray-12)';
+        if (!isHighlighted && isRedBlackNode) {
+          textColor = 'white'; // Always white text on red or black nodes
+        }
+
         return (
           <g key={node.id}>
             {/* Circle background */}
@@ -128,7 +145,7 @@ export function TreeCanvas({ root, highlightIds, activeAction }: TreeCanvasProps
               cx={x}
               cy={y}
               r="24"
-              fill={isHighlighted ? 'var(--accent-9)' : 'var(--bg)'}
+              fill={fillColor}
               stroke={isHighlighted ? borderColor : 'var(--border)'}
               strokeWidth={isHighlighted ? 3 : 2}
               style={{
@@ -143,7 +160,7 @@ export function TreeCanvas({ root, highlightIds, activeAction }: TreeCanvasProps
               y={y}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill={isHighlighted ? 'white' : 'var(--gray-12)'}
+              fill={textColor}
               fontSize="14"
               fontWeight={isHighlighted ? '600' : '500'}
               style={{

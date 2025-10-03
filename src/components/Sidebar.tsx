@@ -6,6 +6,8 @@ import { buildTree, buildTreeWithSteps, validateInput } from '../utils/buildTree
 import { buildAVLTree, buildAVLTreeWithSteps } from '../utils/avlTree';
 import { buildBTree, buildBTreeWithSteps, setMinDegree } from '../utils/bTree';
 import { buildBPlusTree, buildBPlusTreeWithSteps, setMinDegree as setBPlusMinDegree } from '../utils/bPlusTree';
+import { buildRedBlackTree, buildRedBlackTreeWithSteps } from '../utils/redBlackTree_v2';
+import { buildTrie, buildTrieWithSteps, insertTrieWithSteps, searchTrieWithSteps, deleteTrieWithSteps } from '../utils/trieTree';
 import { executeTraversal, TraversalType } from '../utils/traversals';
 import { executeBTreeTraversal, BTreeTraversalType } from '../utils/bTreeTraversals';
 import { executeBPlusTreeTraversal, BPlusTreeTraversalType } from '../utils/bPlusTreeTraversals';
@@ -13,6 +15,7 @@ import { insertWithSteps, searchWithSteps, deleteWithSteps } from '../utils/bstO
 import { insertAVLWithSteps, searchAVLWithSteps, deleteAVLWithSteps } from '../utils/avlOperations';
 import { insertBTreeWithSteps, searchBTreeWithSteps as searchBTree, deleteBTreeWithSteps } from '../utils/bTreeOperations';
 import { insertBPlusTreeWithSteps, searchBPlusTreeWithSteps, deleteBPlusTreeWithSteps } from '../utils/bPlusTreeOperations';
+import { insertRBWithSteps, searchRBWithSteps, deleteRBWithSteps } from '../utils/redBlackOperations';
 import { NotificationModal } from './NotificationModal';
 
 export interface SidebarRef {
@@ -44,10 +47,19 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
     setError('');
     setMinDegreeError('');
 
-    const validation = validateInput(arrayInput);
-    if (!validation.valid) {
-      setError(validation.error || 'Invalid input');
-      return;
+    // For Trie, skip number validation
+    if (treeType !== 'trie') {
+      const validation = validateInput(arrayInput);
+      if (!validation.valid) {
+        setError(validation.error || 'Invalid input');
+        return;
+      }
+    } else {
+      // For Trie, just check if input is not empty
+      if (!arrayInput.trim()) {
+        setError('Please enter comma-separated words');
+        return;
+      }
     }
 
     // Set minimum degree for B-Trees and B+ Trees
@@ -89,6 +101,10 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         ? buildBTree(arrayInput)
         : treeType === 'b-plus-tree'
         ? buildBPlusTree(arrayInput)
+        : treeType === 'red-black'
+        ? buildRedBlackTree(arrayInput)
+        : treeType === 'trie'
+        ? buildTrie(arrayInput)
         : buildTree(arrayInput);
       setRoot(tree);
       setSteps([]);
@@ -100,6 +116,10 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         ? buildBTreeWithSteps(arrayInput)
         : treeType === 'b-plus-tree'
         ? buildBPlusTreeWithSteps(arrayInput)
+        : treeType === 'red-black'
+        ? buildRedBlackTreeWithSteps(arrayInput)
+        : treeType === 'trie'
+        ? buildTrieWithSteps(arrayInput)
         : buildTreeWithSteps(arrayInput);
       setRoot(tree);
       setSteps(steps, 'build');
@@ -146,6 +166,11 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       return { valid: false, error: `Please enter value(s) to ${operationName}` };
     }
 
+    // For Trie, just check if input is not empty (words are validated in trieTree.ts)
+    if (treeType === 'trie') {
+      return { valid: true };
+    }
+
     // Parse input - handle array notation or comma-separated values
     const cleanInput = input.trim().replace(/^\[|\]$/g, '');
     const values = cleanInput
@@ -186,6 +211,10 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       ? insertBTreeWithSteps(root, insertValue, parseInt(minDegree) || 3)
       : treeType === 'b-plus-tree'
       ? insertBPlusTreeWithSteps(root, insertValue, parseInt(minDegree) || 3)
+      : treeType === 'red-black'
+      ? insertRBWithSteps(root, insertValue)
+      : treeType === 'trie'
+      ? insertTrieWithSteps(root, insertValue)
       : insertWithSteps(root, insertValue);
     setRoot(newRoot);
     setInsertValue('');
@@ -218,6 +247,10 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       ? deleteBTreeWithSteps(root, deleteValue, parseInt(minDegree) || 3)
       : treeType === 'b-plus-tree'
       ? deleteBPlusTreeWithSteps(root, deleteValue, parseInt(minDegree) || 3)
+      : treeType === 'red-black'
+      ? deleteRBWithSteps(root, deleteValue)
+      : treeType === 'trie'
+      ? deleteTrieWithSteps(root, deleteValue)
       : deleteWithSteps(root, deleteValue);
     setRoot(newRoot);
     setDeleteValue('');
@@ -250,6 +283,10 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
       ? searchBTree(root, searchValue)
       : treeType === 'b-plus-tree'
       ? searchBPlusTreeWithSteps(root, searchValue)
+      : treeType === 'red-black'
+      ? searchRBWithSteps(root, searchValue)
+      : treeType === 'trie'
+      ? searchTrieWithSteps(root, searchValue)
       : searchWithSteps(root, searchValue);
     setSearchValue('');
 
@@ -372,14 +409,14 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
 
         <div className={styles.inputGroup}>
           <label htmlFor="array-input" className={styles.label}>
-            Array
+            {treeType === 'trie' ? 'Words' : 'Array'}
           </label>
           <input
             id="array-input"
             type="text"
             className={styles.input}
-            placeholder="e.g., [10, 5, 15, 3, 7, 12, 18]"
-            aria-label="Array input for tree construction"
+            placeholder={treeType === 'trie' ? 'e.g., cat, dog, car, cart' : 'e.g., [10, 5, 15, 3, 7, 12, 18]'}
+            aria-label={treeType === 'trie' ? 'Words input for trie construction' : 'Array input for tree construction'}
             value={arrayInput}
             onChange={(e) => setArrayInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleBuildTree()}
@@ -407,7 +444,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         </div>
       </div>
 
-      {(treeType === 'binary' || treeType === 'avl' || treeType === 'b-tree' || treeType === 'b-plus-tree') && (
+      {(treeType === 'binary' || treeType === 'avl' || treeType === 'red-black' || treeType === 'b-tree' || treeType === 'b-plus-tree' || treeType === 'trie') && (
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>Operations</h3>
 
@@ -437,7 +474,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 id="insert-input"
                 type="text"
                 className={styles.input}
-                placeholder="Value or [10, 20, 30]"
+                placeholder={treeType === 'trie' ? 'Word(s) e.g., cat, dog' : 'Value or [10, 20, 30]'}
                 value={insertValue}
                 onChange={(e) => {
                   setInsertValue(e.target.value);
@@ -484,7 +521,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 id="delete-input"
                 type="text"
                 className={styles.input}
-                placeholder="Value or [10, 20, 30]"
+                placeholder={treeType === 'trie' ? 'Word e.g., cat' : 'Value or [10, 20, 30]'}
                 value={deleteValue}
                 onChange={(e) => {
                   setDeleteValue(e.target.value);
@@ -531,7 +568,7 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
                 id="search-input"
                 type="text"
                 className={styles.input}
-                placeholder="Value or [10, 20, 30]"
+                placeholder={treeType === 'trie' ? 'Word e.g., cat' : 'Value or [10, 20, 30]'}
                 value={searchValue}
                 onChange={(e) => {
                   setSearchValue(e.target.value);
@@ -571,75 +608,77 @@ export const Sidebar = forwardRef<SidebarRef>((props, ref) => {
         </div>
       )}
 
-      <div className={styles.card}>
-        <h3 className={styles.cardTitle}>Traversals</h3>
+      {treeType !== 'trie' && (
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>Traversals</h3>
 
-        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <input
-            type="checkbox"
-            id="skip-traversal-animation"
-            checked={skipTraversalAnimation}
-            onChange={(e) => setSkipTraversalAnimation(e.target.checked)}
-            style={{ cursor: 'pointer' }}
-          />
-          <label
-            htmlFor="skip-traversal-animation"
-            style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--gray-11)' }}
-          >
-            <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-            Skip animation
-          </label>
-        </div>
+          <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              id="skip-traversal-animation"
+              checked={skipTraversalAnimation}
+              onChange={(e) => setSkipTraversalAnimation(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            <label
+              htmlFor="skip-traversal-animation"
+              style={{ fontSize: '13px', cursor: 'pointer', color: 'var(--gray-11)' }}
+            >
+              <Zap size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+              Skip animation
+            </label>
+          </div>
 
-        <div className={styles.buttonGroup}>
-          <button
-            className={`${styles.btn} ${activeAction === 'inorder' ? styles.btnPrimary : ''}`}
-            aria-label="Execute in-order traversal"
-            onClick={() => handleTraversal('inorder')}
-            disabled={!root}
-          >
-            In-order
-          </button>
-          {(treeType !== 'b-tree' && treeType !== 'b-plus-tree') && (
-            <>
-              <button
-                className={`${styles.btn} ${activeAction === 'preorder' ? styles.btnPrimary : ''}`}
-                aria-label="Execute pre-order traversal"
-                onClick={() => handleTraversal('preorder')}
-                disabled={!root}
-              >
-                Pre-order
-              </button>
-              <button
-                className={`${styles.btn} ${activeAction === 'postorder' ? styles.btnPrimary : ''}`}
-                aria-label="Execute post-order traversal"
-                onClick={() => handleTraversal('postorder')}
-                disabled={!root}
-              >
-                Post-order
-              </button>
-            </>
-          )}
-          <button
-            className={`${styles.btn} ${activeAction === 'levelorder' ? styles.btnPrimary : ''}`}
-            aria-label="Execute level-order traversal"
-            onClick={() => handleTraversal('levelorder')}
-            disabled={!root}
-          >
-            Level-order
-          </button>
-          {treeType === 'b-plus-tree' && (
+          <div className={styles.buttonGroup}>
             <button
-              className={`${styles.btn} ${activeAction === 'leaforder' ? styles.btnPrimary : ''}`}
-              aria-label="Execute leaf-order traversal"
-              onClick={() => handleTraversal('leaforder')}
+              className={`${styles.btn} ${activeAction === 'inorder' ? styles.btnPrimary : ''}`}
+              aria-label="Execute in-order traversal"
+              onClick={() => handleTraversal('inorder')}
               disabled={!root}
             >
-              Leaf-order
+              In-order
             </button>
-          )}
+            {(treeType !== 'b-tree' && treeType !== 'b-plus-tree') && (
+              <>
+                <button
+                  className={`${styles.btn} ${activeAction === 'preorder' ? styles.btnPrimary : ''}`}
+                  aria-label="Execute pre-order traversal"
+                  onClick={() => handleTraversal('preorder')}
+                  disabled={!root}
+                >
+                  Pre-order
+                </button>
+                <button
+                  className={`${styles.btn} ${activeAction === 'postorder' ? styles.btnPrimary : ''}`}
+                  aria-label="Execute post-order traversal"
+                  onClick={() => handleTraversal('postorder')}
+                  disabled={!root}
+                >
+                  Post-order
+                </button>
+              </>
+            )}
+            <button
+              className={`${styles.btn} ${activeAction === 'levelorder' ? styles.btnPrimary : ''}`}
+              aria-label="Execute level-order traversal"
+              onClick={() => handleTraversal('levelorder')}
+              disabled={!root}
+            >
+              Level-order
+            </button>
+            {treeType === 'b-plus-tree' && (
+              <button
+                className={`${styles.btn} ${activeAction === 'leaforder' ? styles.btnPrimary : ''}`}
+                aria-label="Execute leaf-order traversal"
+                onClick={() => handleTraversal('leaforder')}
+                disabled={!root}
+              >
+                Leaf-order
+              </button>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 });

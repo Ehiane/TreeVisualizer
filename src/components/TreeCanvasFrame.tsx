@@ -5,6 +5,7 @@ import { useTreeStore } from '../state/useTreeStore';
 import { TreeCanvas } from './TreeCanvas';
 import { BTreeCanvas } from './BTreeCanvas';
 import { BPlusTreeCanvas } from './BPlusTreeCanvas';
+import { TrieCanvas } from './TrieCanvas';
 import { InfoModal } from './InfoModal';
 
 export function TreeCanvasFrame() {
@@ -25,11 +26,13 @@ export function TreeCanvasFrame() {
   const currentValue = currentStep?.currentValue;
 
   // Use tree from step if available (for incremental building), otherwise use main root
-  // For B-Trees, use btree field, for B+ Trees use bplustree field, for binary trees use tree field
+  // For B-Trees, use btree field, for B+ Trees use bplustree field, for Trie use trie field, for binary trees use tree field
   const displayTree = treeType === 'b-tree'
     ? (currentStep?.btree !== undefined ? currentStep.btree : root)
     : treeType === 'b-plus-tree'
     ? (currentStep?.bplustree !== undefined ? currentStep.bplustree : root)
+    : treeType === 'trie'
+    ? (currentStep?.trie !== undefined ? currentStep.trie : root)
     : (currentStep?.tree !== undefined ? currentStep.tree : root);
 
   const canGoPrev = index > -1;
@@ -40,6 +43,8 @@ export function TreeCanvasFrame() {
     ? BTreeCanvas({ root: displayTree, highlightIds, activeAction })
     : treeType === 'b-plus-tree'
     ? BPlusTreeCanvas({ root: displayTree, highlightIds, highlightKeys, activeAction })
+    : treeType === 'trie'
+    ? TrieCanvas({ root: displayTree, highlightIds, activeAction })
     : TreeCanvas({ root: displayTree, highlightIds, activeAction });
 
   // Handle mouse drag to pan the SVG
