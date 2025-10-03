@@ -1,4 +1,4 @@
-# Tree Visualizer
+# Tree Inspect
 
 An interactive web application for visualizing multiple tree data structures, their operations, and traversal algorithms. Built with React, TypeScript, and modern web technologies to provide an intuitive learning experience for understanding tree data structures.
 
